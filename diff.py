@@ -155,8 +155,8 @@ class Diff(object):
                     # Insertion in a
                     inserted_blocks = a_diffs.values()[
                         prev_a_block_idx:a_block_idx]
-                    for a_block in inserted_blocks:
-                        result.append(DiffHunk(virt_idx, a=a_block))
+                    result.extend(
+                        DiffHunk(virt_idx, a=b) for b in inserted_blocks)
                     virt_idx += sum(map(len, inserted_blocks))
                 prev_a_block_idx = a_block_idx
                 # Changes in both
@@ -166,6 +166,9 @@ class Diff(object):
                 diff_hunk = DiffHunk(start=virt_idx, a=None, b=block)
             virt_idx += len(diff_hunk)
             result.append(diff_hunk)
+        result.extend(
+            DiffHunk(virt_idx, a=b) for b in
+            a_diffs.values()[prev_a_block_idx:])
         return result
 
     def __iter__(self):
