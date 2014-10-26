@@ -73,6 +73,10 @@ class DiffHunk(object):
         self.a = a
         self.b = b
 
+    @property
+    def end(self):
+        return self.start + len(self)
+
     def __repr__(self):
         a_data = self.a.data if self.a else ''
         b_data = self.b.data if self.b else ''
@@ -171,13 +175,21 @@ class Diff(object):
             a_diffs.values()[prev_a_block_idx:])
         return result
 
-    def __iter__(self):
+    @property
+    def _diff(self):
         if not self._cached_diff:
             self._cached_diff = self._do_diff()
-        return iter(self._cached_diff)
+        return self._cached_diff
+
+    def __iter__(self):
+        return iter(self._diff)
+
+    def __len__(self):
+        return self._diff[-1].end
 
 
-print(Diff(data_a, data_b))
+diff = Diff(data_a, data_b)
+print(len(diff))
 
 scaling_factor = term.width / max(len(data_a), len(data_b))
 
