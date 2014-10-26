@@ -43,30 +43,6 @@ class Chunk(object):
         return not self == other
 
 
-def _chunks(data, window_size):
-    '''Uses a moving window over `data` to split it into shift-resistant
-    chunks, by splitting when some bits of the window's hash are all zero.
-    '''
-    chunk = None
-    for i in xrange(len(data) - window_size + 1):
-        window_hash = hash(data[i:i + window_size])
-        if window_hash & 0b11111 == 0:
-            chunk = Chunk(data, prev_chunk=chunk, end=i)
-            yield chunk
-    yield Chunk(data, chunk, len(data))
-
-
-def chunks(data, window_size=8):
-    return OrderedDict((c, c) for c in _chunks(data, window_size))
-
-
-def find_prev_common_chunk(chunk, other_data):
-    while chunk is not None:
-        if chunk in other_data:
-            return chunk
-        chunk = chunk.prev
-
-
 class DiffHunk(object):
     def __init__(self):
         self._a = None
@@ -92,28 +68,64 @@ class DiffHunk(object):
             self.__class__.__name__, a_data, b_data)
 
 
-def diff(data_a, data_b):
-    a_chunks = chunks(data_a)
-    b_chunks = chunks(data_b)
-    uniq_to_a = [c for c in a_chunks if c not in b_chunks]
-    uniq_to_b = [c for c in b_chunks if c not in a_chunks]
-    result = defaultdict(DiffHunk)
-    for chunk in uniq_to_a:
-        pcc = find_prev_common_chunk(chunk, b_chunks)
-        result[pcc].extend_a(chunk)
-    for chunk in uniq_to_b:
-        pcc = find_prev_common_chunk(chunk, a_chunks)
-        result[pcc].extend_b(chunk)
-    def key(i):
-        common_chunk, diff_hunk = i
-        if common_chunk:
-            return common_chunk.end
-        else:
-            return 0
-    result = OrderedDict(sorted(result.items(), key=key))
-    return result
+class Diff(object):
+    def __init__(self, data_a, data_b, window_size=8):
+        self.data_a = data_a
+        self.data_b = data_b
+        self._window_size = window_size
+        self._cached_diff = None
 
-my_diff = diff(data_a, data_b)
+    def _chunk_gen(self, data):
+        '''Uses a moving window over `data` to split it into shift-resistant
+        chunks, by splitting when some bits of the window's hash are all zero.
+        '''
+        chunk = None
+        for i in xrange(len(data) - self._window_size + 1):
+            window_hash = hash(data[i:i + self._window_size])
+            if window_hash & 0b11111 == 0:
+                chunk = Chunk(data, prev_chunk=chunk, end=i)
+                yield chunk
+        yield Chunk(data, chunk, len(data))
+
+    def _chunk_od(self, data):
+        return OrderedDict((c, c) for c in self._chunk_gen(data))
+
+    @staticmethod
+    def _find_prev_common_chunk(chunk, other_data):
+        while chunk is not None:
+            if chunk in other_data:
+                return chunk
+            chunk = chunk.prev
+
+    def _do_diff(self):
+        a_chunks = self._chunk_od(self.data_a)
+        b_chunks = self._chunk_od(self.data_b)
+        uniq_to_a = [c for c in a_chunks if c not in b_chunks]
+        uniq_to_b = [c for c in b_chunks if c not in a_chunks]
+        result = defaultdict(DiffHunk)
+        for chunk in uniq_to_a:
+            pcc = self._find_prev_common_chunk(chunk, b_chunks)
+            result[pcc].extend_a(chunk)
+        for chunk in uniq_to_b:
+            pcc = self._find_prev_common_chunk(chunk, a_chunks)
+            result[pcc].extend_b(chunk)
+        def key(i):
+            common_chunk, diff_hunk = i
+            if common_chunk:
+                return common_chunk.end
+            else:
+                return 0
+        result = OrderedDict(sorted(result.items(), key=key))
+        return result
+
+    def __iter__(self):
+        if not self._cached_diff:
+            self._cached_diff = self._do_diff()
+        return iter(self._cached_diff.values())
+
+
+my_diff = Diff(data_a, data_b)
+print(*(h for h in my_diff), sep='\n\n')
 
 scaling_factor = term.width / max(len(data_a), len(data_b))
 
