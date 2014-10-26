@@ -1,5 +1,5 @@
 from __future__ import division, print_function
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 from blessings import Terminal
 
 term = Terminal()
@@ -43,29 +43,47 @@ class Chunk(object):
         return not self == other
 
 
+class Block(object):
+    def __init__(self, start_chunk, end_chunk):
+        assert(start_chunk.source is end_chunk.source)
+        self.start_chunk = start_chunk
+        self.end_chunk = end_chunk
+
+    @property
+    def start(self):
+        return self.start_chunk.start
+
+    @property
+    def end(self):
+        return self.end_chunk.end
+
+    @property
+    def data(self):
+        return self.start_chunk.source[self.start:self.end]
+
+    def __len__(self):
+        return self.end - self.start
+
+
 class DiffHunk(object):
-    def __init__(self):
-        self._a = None
-        self._b = None
-
-    def _extend(self, internal_chunk, new_data_chunk):
-        # FIXME: this is minging!
-        if internal_chunk is None:
-            internal_chunk = new_data_chunk.copy()
-        internal_chunk.end = new_data_chunk.end
-        return internal_chunk
-
-    def extend_a(self, chunk):
-        self._a = self._extend(self._a, chunk)
-
-    def extend_b(self, chunk):
-        self._b = self._extend(self._b, chunk)
+    # "Start" is the "Virtual" index, in an imaginary array containing all the
+    # data, where this hunk of changes starts.
+    def __init__(self, start=None, a=None, b=None):
+        self.start = start
+        self.a = a
+        self.b = b
 
     def __repr__(self):
-        a_data = self._a.data if self._a else 'poop'
-        b_data = self._b.data if self._b else 'poop'
-        return '{}(a={!r}, b={!r})'.format(
-            self.__class__.__name__, a_data, b_data)
+        a_data = self.a.data if self.a else ''
+        b_data = self.b.data if self.b else ''
+        return '{}({:d}, a={!r}, b={!r})'.format(
+            self.__class__.__name__, self.start, a_data, b_data)
+
+    def __len__(self):
+        # VSize
+        a_len = len(self.a) if self.a else 0
+        b_len = len(self.b) if self.b else 1
+        return max(a_len, b_len)
 
 
 class Diff(object):
@@ -100,26 +118,56 @@ class Diff(object):
                 return chunk
             chunk = chunk.prev
 
+    @staticmethod
+    def _contiguous_block_gen(chunks):
+        i = iter(chunks)
+        start_chunk = i.next()
+        prev_chunk = start_chunk
+        for chunk in i:
+            if chunk.prev != prev_chunk:
+                yield Block(start_chunk, prev_chunk)
+                start_chunk = chunk
+            prev_chunk = chunk
+        yield Block(start_chunk, prev_chunk)
+
+    @classmethod
+    def _uniq_blocks(cls, chunks, others_chunks):
+        return cls._contiguous_block_gen(
+            c for c in chunks if c not in others_chunks)
+
     def _do_diff(self):
         a_chunks = self._chunk_od(self.data_a)
         b_chunks = self._chunk_od(self.data_b)
-        uniq_to_a = [c for c in a_chunks if c not in b_chunks]
-        uniq_to_b = [c for c in b_chunks if c not in a_chunks]
-        result = defaultdict(DiffHunk)
-        for chunk in uniq_to_a:
-            pcc = self._find_prev_common_chunk(chunk, b_chunks)
-            result[pcc].extend_a(chunk)
-        for chunk in uniq_to_b:
-            pcc = self._find_prev_common_chunk(chunk, a_chunks)
-            result[pcc].extend_b(chunk)
-        def key(i):
-            common_chunk, diff_hunk = i
-            if common_chunk:
-                return common_chunk.end
+        uniq_blocks_a = list(self._uniq_blocks(a_chunks, b_chunks))
+        uniq_blocks_b = self._uniq_blocks(b_chunks, a_chunks)
+        result = OrderedDict()
+        for block in uniq_blocks_a:
+            pcc = self._find_prev_common_chunk(block.start_chunk, b_chunks)
+            result[pcc] = DiffHunk(start=None, a=block, b=None)
+        virt_idx = 0
+        prev_a_block_idx = 0
+        for block in uniq_blocks_b:
+            pcc = self._find_prev_common_chunk(block.start_chunk, a_chunks)
+            if pcc in result:
+                a_block_idx = result.keys().index(pcc)
+                if a_block_idx > prev_a_block_idx + 1:
+                    # Insertion in a
+                    virt_idx += sum(map(
+                        len, uniq_blocks_a[prev_a_block_idx:a_block_idx]))
+                prev_a_block_idx = a_block_idx
+                # Changes in both
+                diff_hunk = result[pcc]
+                diff_hunk.start = virt_idx
+                diff_hunk.b = block
             else:
-                return 0
-        result = OrderedDict(sorted(result.items(), key=key))
-        return result
+                # Insertion in b
+                diff_hunk = DiffHunk(start=virt_idx, a=None, b=block)
+            virt_idx += len(result[pcc])
+            result[pcc] = diff_hunk
+        def key(i):
+            _common_chunk, diff_hunk = i
+            return diff_hunk.start
+        return OrderedDict(sorted(result.items(), key=key))
 
     def __iter__(self):
         if not self._cached_diff:
