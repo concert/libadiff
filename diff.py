@@ -12,7 +12,7 @@ with open('data_b.txt') as f:
 
 class Chunk(object):
     def __init__(self, data, prev_chunk, end):
-        self._data = data  # reference to the whole original data object
+        self.source = data  # reference to the whole original data object
         self.prev = prev_chunk
         self.end = end
         self._hash = None
@@ -26,10 +26,10 @@ class Chunk(object):
 
     @property
     def data(self):
-        return self._data[self.start:self.end]
+        return self.source[self.start:self.end]
 
     def copy(self):
-        return self.__class__(self._data, self.prev, self.end)
+        return self.__class__(self.source, self.prev, self.end)
 
     def __hash__(self):
         if not self._hash:
