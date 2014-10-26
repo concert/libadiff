@@ -75,6 +75,9 @@ class Diff(object):
         self._window_size = window_size
         self._cached_diff = None
 
+    def __str__(self):
+        return '\n'.join(map(str, self))
+
     def _chunk_gen(self, data):
         '''Uses a moving window over `data` to split it into shift-resistant
         chunks, by splitting when some bits of the window's hash are all zero.
@@ -124,8 +127,7 @@ class Diff(object):
         return iter(self._cached_diff.values())
 
 
-my_diff = Diff(data_a, data_b)
-print(*(h for h in my_diff), sep='\n\n')
+print(Diff(data_a, data_b))
 
 scaling_factor = term.width / max(len(data_a), len(data_b))
 
