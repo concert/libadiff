@@ -65,10 +65,6 @@ def find_prev_common_chunk(chunk, other_data):
         if chunk in other_data:
             return chunk
         chunk = chunk.prev
-    else:
-        raise ValueError(
-            'No previous common chunk found, presuming you have a change at '
-            'the beginning of the file')
 
 
 class DiffHunk(object):
@@ -108,7 +104,13 @@ def diff(data_a, data_b):
     for chunk in uniq_to_b:
         pcc = find_prev_common_chunk(chunk, a_chunks)
         result[pcc].extend_b(chunk)
-    result = OrderedDict(sorted(result.items(), key=lambda i: i[0].end))
+    def key(i):
+        common_chunk, diff_hunk = i
+        if common_chunk:
+            return common_chunk.end
+        else:
+            return 0
+    result = OrderedDict(sorted(result.items(), key=key))
     return result
 
 my_diff = diff(data_a, data_b)
