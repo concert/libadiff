@@ -68,7 +68,7 @@ class Block(object):
 class DiffHunk(object):
     # "Start" is the "Virtual" index, in an imaginary array containing all the
     # data, where this hunk of changes starts.
-    def __init__(self, start=None, a=None, b=None):
+    def __init__(self, start, a=None, b=None):
         self.start = start
         self.a = a
         self.b = b
@@ -138,41 +138,40 @@ class Diff(object):
     def _do_diff(self):
         a_chunks = self._chunk_od(self.data_a)
         b_chunks = self._chunk_od(self.data_b)
-        uniq_blocks_a = list(self._uniq_blocks(a_chunks, b_chunks))
+        uniq_blocks_a = self._uniq_blocks(a_chunks, b_chunks)
         uniq_blocks_b = self._uniq_blocks(b_chunks, a_chunks)
-        result = OrderedDict()
+        a_diffs = OrderedDict()
         for block in uniq_blocks_a:
             pcc = self._find_prev_common_chunk(block.start_chunk, b_chunks)
-            result[pcc] = DiffHunk(start=None, a=block, b=None)
+            a_diffs[pcc] = block
         virt_idx = 0
         prev_a_block_idx = 0
+        result = []
         for block in uniq_blocks_b:
             pcc = self._find_prev_common_chunk(block.start_chunk, a_chunks)
-            if pcc in result:
-                a_block_idx = result.keys().index(pcc)
+            if pcc in a_diffs:
+                a_block_idx = a_diffs.keys().index(pcc)
                 if a_block_idx > prev_a_block_idx + 1:
                     # Insertion in a
-                    virt_idx += sum(map(
-                        len, uniq_blocks_a[prev_a_block_idx:a_block_idx]))
+                    inserted_blocks = a_diffs.values()[
+                        prev_a_block_idx:a_block_idx]
+                    for a_block in inserted_blocks:
+                        result.append(DiffHunk(virt_idx, a=a_block))
+                    virt_idx += sum(map(len, inserted_blocks))
                 prev_a_block_idx = a_block_idx
                 # Changes in both
-                diff_hunk = result[pcc]
-                diff_hunk.start = virt_idx
-                diff_hunk.b = block
+                diff_hunk = DiffHunk(virt_idx, a_diffs[pcc], block)
             else:
                 # Insertion in b
                 diff_hunk = DiffHunk(start=virt_idx, a=None, b=block)
-            virt_idx += len(result[pcc])
-            result[pcc] = diff_hunk
-        def key(i):
-            _common_chunk, diff_hunk = i
-            return diff_hunk.start
-        return OrderedDict(sorted(result.items(), key=key))
+            virt_idx += len(diff_hunk)
+            result.append(diff_hunk)
+        return result
 
     def __iter__(self):
         if not self._cached_diff:
             self._cached_diff = self._do_diff()
-        return iter(self._cached_diff.values())
+        return iter(self._cached_diff)
 
 
 print(Diff(data_a, data_b))
