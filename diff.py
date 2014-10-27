@@ -1,13 +1,5 @@
 from __future__ import division, print_function
 from collections import OrderedDict, deque
-from blessings import Terminal
-
-term = Terminal()
-
-with open('data_a.txt') as f:
-    data_a = f.read().replace('\n', '  ')
-with open('data_b.txt') as f:
-    data_b = f.read().replace('\n', '  ')
 
 
 class ddeque(deque):
@@ -231,3 +223,15 @@ def print_mockup():
     print(
         ' B  ', ' ' * 15, '-' * 20, term.yellow('+' * 8), '---',
         term.green('+' * 13), '---', sep='')
+
+
+if __name__ == '__main__':
+    import sys
+    from blessings import Terminal
+    term = Terminal()
+
+    with open(sys.argv[1]) as f:
+        data_a = f.read().replace('\n', '  ')
+    with open(sys.argv[2]) as f:
+        data_b = f.read().replace('\n', '  ')
+    print(Diff(data_a, data_b))
