@@ -58,6 +58,10 @@ class Block(object):
         self.start_chunk = start_chunk
         self.end_chunk = end_chunk
 
+    def __repr__(self):
+        return '{}({:d} {!r})'.format(
+            self.__class__.__name__, self.start, self.data)
+
     @property
     def start(self):
         return self.start_chunk.start
