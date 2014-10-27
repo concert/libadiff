@@ -179,41 +179,36 @@ class Diff(object):
                     result.append(hunk)
                     a_offset += len(b_block)
                     b_anchor, b_block = anchored_blocks_b.popleft()
-        return result
-
-    @property
-    def _diff(self):
-        if not self._cached_diff:
-            self._cached_diff = self._do_diff()
-        return self._cached_diff
+        return len(data_a) + a_offset, result
 
     def __iter__(self):
         return iter(self._diff)
 
     def __len__(self):
-        return self[-1].end
+        return self._end
 
     def __getitem__(self, index):
         return self._diff[index]
 
-diff = Diff(data_a, data_b)
-print(len(diff))
+    @staticmethod
+    def _hunk_symbols(hunk, block, scale):
+        pad_char = ' '
+        add_char = '+'
+        n_add = scale(len(block) if block else 0)
+        n_pad = scale(len(hunk)) - n_add
+        return n_add * [add_char] + n_pad * [pad_char]
 
-scaling_factor = term.width / max(len(data_a), len(data_b))
-
-
-def print_chunk(c, i, j, scaling_factor):
-    num_dashes = int(round((j - i) * scaling_factor))
-    print(c * num_dashes, end='')
-
-
-def print_chunks(a_chunks, b_chunks, scaling_factor):
-    for h, (i, j) in a_chunks.iteritems():
-        if h in b_chunks:
-            print_chunk('-', i, j, scaling_factor)
-        else:
-            print_chunk('+', i, j, scaling_factor)
-    print('')
+    def symbols(self, width):
+        a_out = ['-'] * width
+        b_out = ['-'] * width
+        scaling_factor = width / len(self)
+        scale = lambda n: int(round(scaling_factor * n))
+        for hunk in self:
+            a_out[scale(hunk.start):scale(hunk.end)] = self._hunk_symbols(
+                hunk, hunk.a, scale)
+            b_out[scale(hunk.start):scale(hunk.end)] = self._hunk_symbols(
+                hunk, hunk.b, scale)
+        return ''.join(a_out), ''.join(b_out)
 
 
 def print_mockup():
@@ -237,4 +232,4 @@ if __name__ == '__main__':
         data_a = f.read().replace('\n', '  ')
     with open(sys.argv[2]) as f:
         data_b = f.read().replace('\n', '  ')
-    print(Diff(data_a, data_b))
+    print(*Diff(data_a, data_b).symbols(term.width), sep='\n\n')
