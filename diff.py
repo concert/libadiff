@@ -150,9 +150,12 @@ class Diff(object):
         a_anchor, a_block = anchored_blocks_a.popleft()
         b_anchor, b_block = anchored_blocks_b.popleft()
         result = []
-        while anchored_blocks_a and anchored_blocks_b:
-            a_start = a_block.start + a_offset  # Positions in our "virtual
-            b_start = b_block.start + b_offset  # stream" of data
+        while a_block or b_block:
+            if a_block:
+                # Positions in our "virtual stream" of data:
+                a_start = a_block.start + a_offset
+            if b_block:
+                b_start = b_block.start + b_offset
             if a_anchor == b_anchor:
                 # Dealing with change:
                 assert a_start == b_start, '{} != {}'.format(a_start, b_start)
@@ -164,7 +167,7 @@ class Diff(object):
                 b_anchor, b_block = anchored_blocks_b.popleft()
             else:
                 # Dealing with insertion:
-                if a_start > b_start:
+                if not b_block or a_start > b_start:
                     # a_block is next insertion in our virtual stream of diffs
                     hunk = DiffHunk(start=a_start, a=a_block)
                     result.append(hunk)
