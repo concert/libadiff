@@ -100,7 +100,7 @@ class Diff(object):
         self.data_a = data_a
         self.data_b = data_b
         self._window_size = window_size
-        self._cached_diff = None
+        self._end, self._diff = self._do_diff(data_a, data_b)
 
     def __str__(self):
         return '\n'.join(map(str, self))
@@ -137,9 +137,9 @@ class Diff(object):
         return cls._contiguous_block_gen(
             c for c in chunks if c not in others_chunks)
 
-    def _do_diff(self):
-        a_chunks = self._chunk_od(self.data_a)
-        b_chunks = self._chunk_od(self.data_b)
+    def _do_diff(self, data_a, data_b):
+        a_chunks = self._chunk_od(data_a)
+        b_chunks = self._chunk_od(data_b)
         uniq_blocks_a = self._uniq_blocks(a_chunks, b_chunks)
         uniq_blocks_b = self._uniq_blocks(b_chunks, a_chunks)
         anchored_blocks_a = ddeque(
