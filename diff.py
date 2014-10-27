@@ -1,5 +1,5 @@
 from __future__ import division, print_function
-from collections import OrderedDict
+from collections import OrderedDict, deque
 from blessings import Terminal
 
 term = Terminal()
@@ -8,6 +8,15 @@ with open('data_a.txt') as f:
     data_a = f.read().replace('\n', '  ')
 with open('data_b.txt') as f:
     data_b = f.read().replace('\n', '  ')
+
+
+class ddeque(deque):
+    '''Defaulting deque'''
+    def popleft(self, default=(None, None)):
+        try:
+            return super(ddeque, self).popleft()
+        except IndexError:
+            return default
 
 
 class Chunk(object):
@@ -86,7 +95,7 @@ class DiffHunk(object):
     def __len__(self):
         # VSize
         a_len = len(self.a) if self.a else 0
-        b_len = len(self.b) if self.b else 1
+        b_len = len(self.b) if self.b else 0
         return max(a_len, b_len)
 
 
@@ -116,13 +125,6 @@ class Diff(object):
         return OrderedDict((c, c) for c in self._chunk_gen(data))
 
     @staticmethod
-    def _find_prev_common_chunk(chunk, other_data):
-        while chunk is not None:
-            if chunk in other_data:
-                return chunk
-            chunk = chunk.prev
-
-    @staticmethod
     def _contiguous_block_gen(chunks):
         i = iter(chunks)
         start_chunk = i.next()
@@ -144,35 +146,38 @@ class Diff(object):
         b_chunks = self._chunk_od(self.data_b)
         uniq_blocks_a = self._uniq_blocks(a_chunks, b_chunks)
         uniq_blocks_b = self._uniq_blocks(b_chunks, a_chunks)
-        a_diffs = OrderedDict()
-        for block in uniq_blocks_a:
-            pcc = self._find_prev_common_chunk(block.start_chunk, b_chunks)
-            a_diffs[pcc] = block
-        virt_idx = 0
-        prev_a_block_idx = 0
+        anchored_blocks_a = ddeque(
+            (block.start_chunk.prev, block) for block in uniq_blocks_a)
+        anchored_blocks_b = ddeque(
+            (block.start_chunk.prev, block) for block in uniq_blocks_b)
+        a_offset = b_offset = virt_idx = 0
+        a_anchor, a_block = anchored_blocks_a.popleft()
+        b_anchor, b_block = anchored_blocks_b.popleft()
         result = []
-        for block in uniq_blocks_b:
-            pcc = self._find_prev_common_chunk(block.start_chunk, a_chunks)
-            if pcc in a_diffs:
-                a_block_idx = a_diffs.keys().index(pcc)
-                if a_block_idx > prev_a_block_idx + 1:
-                    # Insertion in a
-                    inserted_blocks = a_diffs.values()[
-                        prev_a_block_idx:a_block_idx]
-                    result.extend(
-                        DiffHunk(virt_idx, a=b) for b in inserted_blocks)
-                    virt_idx += sum(map(len, inserted_blocks))
-                prev_a_block_idx = a_block_idx
-                # Changes in both
-                diff_hunk = DiffHunk(virt_idx, a_diffs[pcc], block)
+        while anchored_blocks_a and anchored_blocks_b:
+            if a_anchor == b_anchor:
+                # Dealing with change:
+                hunk = DiffHunk(start=virt_idx, a=a_block, b=b_block)
+                result.append(hunk)
+                a_anchor, a_block = anchored_blocks_a.popleft()
+                b_anchor, b_block = anchored_blocks_b.popleft()
+                a_offset += len(hunk) - len(a_block)
+                b_offset += len(hunk) - len(b_block)
             else:
-                # Insertion in b
-                diff_hunk = DiffHunk(start=virt_idx, a=None, b=block)
-            virt_idx += len(diff_hunk)
-            result.append(diff_hunk)
-        result.extend(
-            DiffHunk(virt_idx, a=b) for b in
-            a_diffs.values()[prev_a_block_idx:])
+                # Dealing with insertion:
+                if a_block.start + a_offset > b_block.start + b_offset:
+                    # a_block is next insertion in our virtual stream of diffs
+                    hunk = DiffHunk(start=virt_idx, a=a_block)
+                    result.append(hunk)
+                    b_offset += len(a_block)
+                    a_anchor, a_block = anchored_blocks_a.popleft()
+                else:
+                    # b_block is next insertion in our virtual stream of diffs
+                    hunk = DiffHunk(start=virt_idx, b=b_block)
+                    result.append(hunk)
+                    a_offset += len(b_block)
+                    b_anchor, b_block = anchored_blocks_b.popleft()
+            virt_idx += len(hunk)
         return result
 
     @property
@@ -185,8 +190,10 @@ class Diff(object):
         return iter(self._diff)
 
     def __len__(self):
-        return self._diff[-1].end
+        return self[-1].end
 
+    def __getitem__(self, index):
+        return self._diff[index]
 
 diff = Diff(data_a, data_b)
 print(len(diff))
