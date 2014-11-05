@@ -1,0 +1,2 @@
+# To build:
+gcc -std=c99 stream_diff.c -lsndfile
