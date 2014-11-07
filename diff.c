@@ -1,17 +1,15 @@
 #include <glib.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-typedef char* buffer;
+#include "diff.h"
 
 typedef unsigned long hash;
 
 typedef struct chunk {
-    buffer source;  // raw data
-    unsigned start;  // start index in raw data
-    unsigned end;  // end index in raw data
-    buffer data;  // source + start
-    unsigned length;  // end - start
+    union {
+        struct view;
+        view v;
+    };
     hash hash;
 } chunk;
 
@@ -141,14 +139,6 @@ int main() {
         printf("no unique stuff\n");
     g_slist_free_full(unique, free);
 }
-
-typedef struct {
-    unsigned start;
-    block a;
-    block b;
-} diff_hunk;
-
-typedef diff_hunk* diff;
 
 /*
 diff file_diff(const string a, const string b) {
