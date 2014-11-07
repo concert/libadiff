@@ -62,10 +62,9 @@ void hash_set_destroy(hash_set set) {
     g_hash_table_destroy(set);
 }
 
-typedef chunk block;
 // The hash of a block is the hash of its preceeding chunk common to both
 // streams used as an anchor to align the streams.
-
+typedef chunk block;
 
 // Watch out mallocy
 block * block_new(
@@ -86,10 +85,9 @@ block * block_new(
 typedef GSList * blocks;
 
 blocks unique_blocks(restrict chunks ours, restrict chunks theirs) {
-    typedef chunk const * const const_chunk;
     hash_set their_hashes = hash_set_new();
     while (theirs != NULL) {
-        hash_set_insert(their_hashes, ((const_chunk) theirs->data)->hash);
+        hash_set_insert(their_hashes, ((chunk const * const) theirs->data)->hash);
         theirs = g_slist_next(theirs);
     }
 
@@ -135,12 +133,13 @@ int main() {
     b_chunks = g_slist_prepend(b_chunks, &b1);
     b_chunks = g_slist_prepend(b_chunks, &b0);
 
-    chunks unique = unique_blocks(b_chunks, a_chunks);
+    blocks unique = unique_blocks(b_chunks, a_chunks);
     if (unique != NULL) {
         chunk * c = unique->data;
         printf("unique bit: %s\n", c->data);
     } else
         printf("no unique stuff\n");
+    g_slist_free_full(unique, free);
 }
 
 typedef struct {
