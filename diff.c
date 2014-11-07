@@ -40,12 +40,24 @@ hash_set hash_set_new() {
         /*value destroy*/ NULL);
 }
 
-void hash_set_insert(hash_set set, hash hash) {
-    g_hash_table_insert(set, hash, hash);
+void hash_set_insert(hash_set set, const hash key) {
+    hash h = g_hash_table_lookup(set, key);
+    //  A failed lookup comes back with NULL (0)
+    g_hash_table_insert(set, key, h+1);
 }
 
 gboolean hash_set_contains(hash_set set, hash hash) {
     return g_hash_table_lookup_extended(set, hash, NULL, NULL);
+}
+
+hash hash_pop(hash_set set, const hash key) {
+    hash h = g_hash_table_lookup(set, key);
+    if (h == 1) {
+        g_hash_table_remove(set, key);
+    } else if (h > 1) {
+        g_hash_table_insert(set, key, h-1);
+    }
+    return h;
 }
 
 void hash_set_destroy(hash_set set) {
@@ -89,7 +101,7 @@ blocks unique_blocks(restrict chunks ours, restrict chunks theirs) {
     chunk const * chunk;
     while (ours != NULL) {
         chunk = ours->data;
-        if (hash_set_contains(their_hashes, chunk->hash)) {
+        if (hash_pop(their_hashes, chunk->hash)) {
             // We're processing a chunk common to ours and theirs
             if (chunk->start != previous_common->end) {
                 // There's a gap, we skipped over some chunks unique to ours
@@ -116,7 +128,7 @@ int main() {
     chunk a1 = chunk_new(a, 3, 6);
     a_chunks = g_slist_prepend(a_chunks, &a1);
     a_chunks = g_slist_prepend(a_chunks, &a0);
-    buffer const b = "foobarbaz";
+    buffer const b = "foobarbar";
     chunks b_chunks = NULL;
     chunk b0 = chunk_new(b, 0, 3);
     chunk b1 = chunk_new(b, 3, 6);
