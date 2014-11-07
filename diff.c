@@ -41,23 +41,21 @@ hash_set hash_set_new() {
 }
 
 void hash_set_insert(hash_set set, const hash key) {
-    hash h = g_hash_table_lookup(set, key);
+    gpointer ptr = GUINT_TO_POINTER(key);
+    gpointer h = g_hash_table_lookup(set, ptr);
     //  A failed lookup comes back with NULL (0)
-    g_hash_table_insert(set, key, h+1);
-}
-
-gboolean hash_set_contains(hash_set set, hash hash) {
-    return g_hash_table_lookup_extended(set, hash, NULL, NULL);
+    g_hash_table_insert(set, ptr, h+1);
 }
 
 hash hash_pop(hash_set set, const hash key) {
-    hash h = g_hash_table_lookup(set, key);
+    gpointer ptr = GUINT_TO_POINTER(key);
+    hash h = GPOINTER_TO_UINT(g_hash_table_lookup(set, ptr));
     if (h == 1) {
-        g_hash_table_remove(set, key);
+        g_hash_table_remove(set, ptr);
     } else if (h > 1) {
-        g_hash_table_insert(set, key, h-1);
+        g_hash_table_insert(set, ptr, GUINT_TO_POINTER(h-1));
     }
-    return h;
+    return GPOINTER_TO_UINT(h);
 }
 
 void hash_set_destroy(hash_set set) {
