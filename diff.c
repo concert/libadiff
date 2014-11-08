@@ -37,7 +37,7 @@ void chunk_free(chunk * head) {
 }
 
 chunk * chunk_new(
-        const buffer source, chunk * const prev, const unsigned start,
+        char const * const source, chunk * const prev, const unsigned start,
         const unsigned end) {
     char substr[end - start + 1];
     snprintf(substr, end - start + 1, "%s", source + start);
@@ -192,11 +192,11 @@ diff_hunk * pair_blocks(blocks a, blocks b) {
 }
 
 int main() {
-    buffer const a = "foobar";
+    char const * const a = "foobar";
     chunk * a_chunks = NULL, * a_tail = NULL;
     a_chunks = a_tail = chunk_new(a, a_tail, 0, 3);
     a_tail = chunk_new(a, a_tail, 3, 6);
-    buffer const b = "foobarbar";
+    char const * const b = "foobarbar";
     chunk * b_chunks = NULL, * b_tail = NULL;
     b_chunks = b_tail = chunk_new(b, b_tail, 0, 3);
     b_tail = chunk_new(b, b_tail, 3, 6);

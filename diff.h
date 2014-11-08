@@ -1,7 +1,5 @@
 #pragma once
 
-typedef char* buffer;
-
 typedef struct view {
     unsigned start;  // start index in raw data
     unsigned end;  // end index in raw data
