@@ -126,15 +126,16 @@ diff_hunk * diff_hunk_new(
 typedef GSList * hunks;
 
 hunks pair_blocks(blocks a, blocks b) {
+    block const * a_block, * b_block;
+    hash a_anchor, b_anchor;
+    #define pop_block(a_or_b) \
+        a_or_b##_block = (a_or_b != NULL) ? a_or_b->data : NULL;\
+        a_or_b##_anchor = (a_or_b##_block != NULL) ? a_or_b##_block->hash : 0;\
+        a_or_b = g_slist_next(a_or_b);
+    pop_block(a)
+    pop_block(b)
     hunks result = NULL;
     unsigned a_offset = 0, b_offset = 0;
-    #define get_block(a_or_b) (a_or_b != NULL) ? a_or_b->data : NULL
-    #define get_anchor(a_or_b) \
-        (a_or_b##_block != NULL) ? a_or_b##_block->hash : 0
-    block const * a_block = get_block(a);
-    hash a_anchor = get_anchor(a);
-    block const * b_block = get_block(b);
-    hash b_anchor = get_anchor(b);
     unsigned a_start = 0, b_start = 0;  //  Is this right?
     while ((a_block != NULL) || (b_block != NULL)) {
         if (a_block != NULL) {
@@ -143,7 +144,7 @@ hunks pair_blocks(blocks a, blocks b) {
         if (b_block != NULL) {
             b_start = b_block->start + b_offset;
         }
-        if ((a_anchor == b_anchor) && (a_anchor != 0)) {
+        if (a_anchor == b_anchor) {
             //  TODO: Assert the starts are equal
             result = g_slist_prepend(result, diff_hunk_new(
                 a_start, &(a_block->v), &(b_block->v)));
@@ -151,34 +152,25 @@ hunks pair_blocks(blocks a, blocks b) {
                 a_block->length : b_block->length;
             a_offset += hunk_len - a_block->length;
             b_offset += hunk_len - b_block->length;
-            a = g_slist_next(a);
-            a_block = get_block(a);
-            a_anchor = get_anchor(a);
-            b = g_slist_next(b);
-            b_block = get_block(b);
-            b_anchor = get_anchor(b);
+            pop_block(a)
+            pop_block(b)
         } else {
             if ((b_block == NULL) || (a_start > b_start)) {
                 //  a_block is next insertion in our virtual stream of diffs
                 result = g_slist_prepend(result, diff_hunk_new(
                     a_start, &(a_block->v), NULL));
                 b_offset += a_block->length;
-                a = g_slist_next(a);
-                a_block = get_block(a);
-                a_anchor = get_anchor(a);
+                pop_block(a)
             } else {
                 //  b_block is next insertion in our virtual stream of diffs
                 result = g_slist_prepend(result, diff_hunk_new(
                     a_start, NULL, &(b_block->v)));
                 a_offset += b_block->length;
-                b = g_slist_next(b);
-                b_block = get_block(b);
-                b_anchor = get_anchor(b);
+                pop_block(b)
             }
         }
     }
-    #undef get_block
-    #undef get_anchor
+    #undef pop_block
     return result;
 }
 

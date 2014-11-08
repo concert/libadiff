@@ -16,5 +16,3 @@ typedef struct {
     view const * a;
     view const * b;
 } diff_hunk;
-
-typedef diff_hunk* diff;  // Too simplistic?
