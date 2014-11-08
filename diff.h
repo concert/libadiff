@@ -10,3 +10,9 @@ typedef struct diff_hunk {
     view const * a;
     view const * b;
 } diff_hunk;
+
+typedef unsigned (*data_fetcher)(void * source, unsigned n_items, char * buffer);
+
+diff_hunk * diff(data_fetcher df, void * a, void * b);
+
+void diff_hunk_free(diff_hunk * dh);
