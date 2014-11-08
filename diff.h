@@ -13,8 +13,8 @@ typedef struct view {
 
 typedef struct {
     unsigned start;  // Does this belong in the interface?
-    view a;
-    view b;
+    view const * a;
+    view const * b;
 } diff_hunk;
 
-typedef diff_hunk* diff;
+typedef diff_hunk* diff;  // Too simplistic?

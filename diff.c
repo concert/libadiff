@@ -85,7 +85,8 @@ typedef GSList * blocks;
 blocks unique_blocks(restrict chunks ours, restrict chunks theirs) {
     hash_multiset their_hashes = hash_multiset_new();
     while (theirs != NULL) {
-        hash_multiset_insert(their_hashes, ((chunk const * const) theirs->data)->hash);
+        hash_multiset_insert(
+            their_hashes, ((chunk const * const) theirs->data)->hash);
         theirs = g_slist_next(theirs);
     }
 
@@ -115,6 +116,72 @@ blocks unique_blocks(restrict chunks ours, restrict chunks theirs) {
     return g_slist_reverse(unique_blocks);
 }
 
+diff_hunk * diff_hunk_new(
+        unsigned start, view const * const a, view const * const b) {
+    diff_hunk * const hunk = malloc(sizeof(diff_hunk));
+    *hunk = (diff_hunk) {.start = start, .a = a, .b = b};
+    return hunk;
+}
+
+typedef GSList * hunks;
+
+hunks pair_blocks(blocks a, blocks b) {
+    hunks result = NULL;
+    unsigned a_offset = 0, b_offset = 0;
+    #define get_block(a_or_b) (a_or_b != NULL) ? a_or_b->data : NULL
+    #define get_anchor(a_or_b) \
+        (a_or_b##_block != NULL) ? a_or_b##_block->hash : 0
+    block const * a_block = get_block(a);
+    hash a_anchor = get_anchor(a);
+    block const * b_block = get_block(b);
+    hash b_anchor = get_anchor(b);
+    unsigned a_start = 0, b_start = 0;  //  Is this right?
+    while ((a_block != NULL) || (b_block != NULL)) {
+        if (a_block != NULL) {
+            a_start = a_block->start + a_offset;
+        }
+        if (b_block != NULL) {
+            b_start = b_block->start + b_offset;
+        }
+        if ((a_anchor == b_anchor) && (a_anchor != 0)) {
+            //  TODO: Assert the starts are equal
+            result = g_slist_prepend(result, diff_hunk_new(
+                a_start, &(a_block->v), &(b_block->v)));
+            unsigned const hunk_len = (a_block->length > b_block->length) ?
+                a_block->length : b_block->length;
+            a_offset += hunk_len - a_block->length;
+            b_offset += hunk_len - b_block->length;
+            a = g_slist_next(a);
+            a_block = get_block(a);
+            a_anchor = get_anchor(a);
+            b = g_slist_next(b);
+            b_block = get_block(b);
+            b_anchor = get_anchor(b);
+        } else {
+            if ((b_block == NULL) || (a_start > b_start)) {
+                //  a_block is next insertion in our virtual stream of diffs
+                result = g_slist_prepend(result, diff_hunk_new(
+                    a_start, &(a_block->v), NULL));
+                b_offset += a_block->length;
+                a = g_slist_next(a);
+                a_block = get_block(a);
+                a_anchor = get_anchor(a);
+            } else {
+                //  b_block is next insertion in our virtual stream of diffs
+                result = g_slist_prepend(result, diff_hunk_new(
+                    a_start, NULL, &(b_block->v)));
+                a_offset += b_block->length;
+                b = g_slist_next(b);
+                b_block = get_block(b);
+                b_anchor = get_anchor(b);
+            }
+        }
+    }
+    #undef get_block
+    #undef get_anchor
+    return result;
+}
+
 int main() {
     buffer const a = "foobar";
     chunks a_chunks = NULL;
@@ -131,13 +198,13 @@ int main() {
     b_chunks = g_slist_prepend(b_chunks, &b1);
     b_chunks = g_slist_prepend(b_chunks, &b0);
 
-    blocks unique = unique_blocks(b_chunks, a_chunks);
-    if (unique != NULL) {
-        chunk * c = unique->data;
-        printf("unique bit: %s\n", c->data);
-    } else
-        printf("no unique stuff\n");
-    g_slist_free_full(unique, free);
+    blocks unique_a = unique_blocks(a_chunks, b_chunks);
+    blocks unique_b = unique_blocks(b_chunks, a_chunks);
+    hunks h = pair_blocks(unique_a, unique_b);
+    diff_hunk * dh = h->data;
+    printf("hs: %u bs: %u be: %u\n", dh->start, dh->b->start, dh->b->end);
+    g_slist_free_full(unique_a, free);
+    g_slist_free_full(unique_b, free);
 }
 
 /*
