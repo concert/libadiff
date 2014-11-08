@@ -117,9 +117,9 @@ blocks unique_blocks(restrict chunks ours, restrict chunks theirs) {
 }
 
 diff_hunk * diff_hunk_new(
-        unsigned start, view const * const a, view const * const b) {
+        view const * const a, view const * const b) {
     diff_hunk * const hunk = malloc(sizeof(diff_hunk));
-    *hunk = (diff_hunk) {.start = start, .a = a, .b = b};
+    *hunk = (diff_hunk) {.a = a, .b = b};
     return hunk;
 }
 
@@ -147,7 +147,7 @@ hunks pair_blocks(blocks a, blocks b) {
         if (a_anchor == b_anchor) {
             //  TODO: Assert the starts are equal
             result = g_slist_prepend(result, diff_hunk_new(
-                a_start, &(a_block->v), &(b_block->v)));
+                &(a_block->v), &(b_block->v)));
             unsigned const hunk_len = (a_block->length > b_block->length) ?
                 a_block->length : b_block->length;
             a_offset += hunk_len - a_block->length;
@@ -158,13 +158,13 @@ hunks pair_blocks(blocks a, blocks b) {
             if ((b_block == NULL) || (a_start > b_start)) {
                 //  a_block is next insertion in our virtual stream of diffs
                 result = g_slist_prepend(result, diff_hunk_new(
-                    a_start, &(a_block->v), NULL));
+                    &(a_block->v), NULL));
                 b_offset += a_block->length;
                 pop_block(a)
             } else {
                 //  b_block is next insertion in our virtual stream of diffs
                 result = g_slist_prepend(result, diff_hunk_new(
-                    a_start, NULL, &(b_block->v)));
+                    NULL, &(b_block->v)));
                 a_offset += b_block->length;
                 pop_block(b)
             }
@@ -194,7 +194,7 @@ int main() {
     blocks unique_b = unique_blocks(b_chunks, a_chunks);
     hunks h = pair_blocks(unique_a, unique_b);
     diff_hunk * dh = h->data;
-    printf("hs: %u bs: %u be: %u\n", dh->start, dh->b->start, dh->b->end);
+    printf("bs: %u be: %u\n", dh->b->start, dh->b->end);
     g_slist_free(h);
     g_slist_free_full(unique_a, free);
     g_slist_free_full(unique_b, free);

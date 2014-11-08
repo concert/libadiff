@@ -12,7 +12,6 @@ typedef struct view {
 } view;
 
 typedef struct {
-    unsigned start;  // Does this belong in the interface?
     view const * a;
     view const * b;
 } diff_hunk;
