@@ -28,9 +28,9 @@ chunk chunk_new(const buffer source, const unsigned start, const unsigned end) {
 
 typedef GSList * chunks;
 
-typedef GHashTable * const hash_set;
+typedef GHashTable * const hash_multiset;
 
-hash_set hash_set_new() {
+hash_multiset hash_multiset_new() {
     return g_hash_table_new_full(
         &g_direct_hash,
         &g_direct_equal,
@@ -38,14 +38,14 @@ hash_set hash_set_new() {
         /*value destroy*/ NULL);
 }
 
-void hash_set_insert(hash_set set, const hash key) {
+void hash_multiset_insert(hash_multiset set, const hash key) {
     gpointer ptr = GUINT_TO_POINTER(key);
     gpointer h = g_hash_table_lookup(set, ptr);
     //  A failed lookup comes back with NULL (0)
     g_hash_table_insert(set, ptr, h+1);
 }
 
-hash hash_pop(hash_set set, const hash key) {
+hash hash_multiset_pop(hash_multiset set, const hash key) {
     gpointer ptr = GUINT_TO_POINTER(key);
     hash h = GPOINTER_TO_UINT(g_hash_table_lookup(set, ptr));
     if (h == 1) {
@@ -56,7 +56,7 @@ hash hash_pop(hash_set set, const hash key) {
     return GPOINTER_TO_UINT(h);
 }
 
-void hash_set_destroy(hash_set set) {
+void hash_multiset_destroy(hash_multiset set) {
     g_hash_table_destroy(set);
 }
 
@@ -83,9 +83,9 @@ block * block_new(
 typedef GSList * blocks;
 
 blocks unique_blocks(restrict chunks ours, restrict chunks theirs) {
-    hash_set their_hashes = hash_set_new();
+    hash_multiset their_hashes = hash_multiset_new();
     while (theirs != NULL) {
-        hash_set_insert(their_hashes, ((chunk const * const) theirs->data)->hash);
+        hash_multiset_insert(their_hashes, ((chunk const * const) theirs->data)->hash);
         theirs = g_slist_next(theirs);
     }
 
@@ -95,7 +95,7 @@ blocks unique_blocks(restrict chunks ours, restrict chunks theirs) {
     chunk const * chunk;
     while (ours != NULL) {
         chunk = ours->data;
-        if (hash_pop(their_hashes, chunk->hash)) {
+        if (hash_multiset_pop(their_hashes, chunk->hash)) {
             // We're processing a chunk common to ours and theirs
             if (chunk->start != previous_common->end) {
                 // There's a gap, we skipped over some chunks unique to ours
@@ -111,7 +111,7 @@ blocks unique_blocks(restrict chunks ours, restrict chunks theirs) {
         unique_blocks = g_slist_prepend(unique_blocks, block_new(
             chunk->source, previous_common, chunk->start));
     }
-    hash_set_destroy(their_hashes);
+    hash_multiset_destroy(their_hashes);
     return g_slist_reverse(unique_blocks);
 }
 
