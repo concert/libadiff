@@ -171,7 +171,7 @@ hunks pair_blocks(blocks a, blocks b) {
         }
     }
     #undef pop_block
-    return result;
+    return g_slist_reverse(result);
 }
 
 int main() {
@@ -195,6 +195,7 @@ int main() {
     hunks h = pair_blocks(unique_a, unique_b);
     diff_hunk * dh = h->data;
     printf("hs: %u bs: %u be: %u\n", dh->start, dh->b->start, dh->b->end);
+    g_slist_free(h);
     g_slist_free_full(unique_a, free);
     g_slist_free_full(unique_b, free);
 }
