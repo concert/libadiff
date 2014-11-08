@@ -110,7 +110,7 @@ blocks unique_blocks(restrict chunks ours, restrict chunks theirs) {
     if (chunk->start != previous_common->start) {
         // Unique block at end
         unique_blocks = g_slist_prepend(unique_blocks, block_new(
-            chunk->source, previous_common, chunk->start));
+            chunk->source, previous_common, chunk->end));
     }
     hash_multiset_destroy(their_hashes);
     return g_slist_reverse(unique_blocks);
