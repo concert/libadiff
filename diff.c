@@ -1,6 +1,7 @@
 #include <glib.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 #include "diff.h"
 
 typedef unsigned long hash;
@@ -160,7 +161,7 @@ diff_hunk * pair_blocks(blocks a, blocks b) {
             b_start = b->start + b_offset;
         }
         if ((a != NULL) && (b != NULL) && (a->hash == b->hash)) {
-            //  TODO: Assert the starts are equal
+            assert(a_start == b_start);
             tail = diff_hunk_new(tail, &(a->v), &(b->v));
             unsigned const a_length =
                 a->end - a->start, b_length = b->end - b->start;
