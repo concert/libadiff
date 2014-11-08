@@ -11,7 +11,8 @@ typedef struct view {
     unsigned length;  // end - start
 } view;
 
-typedef struct {
+typedef struct diff_hunk {
+    struct diff_hunk * next;
     view const * a;
     view const * b;
 } diff_hunk;

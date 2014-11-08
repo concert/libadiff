@@ -117,26 +117,35 @@ blocks unique_blocks(restrict chunks ours, restrict chunks theirs) {
 }
 
 diff_hunk * diff_hunk_new(
-        view const * const a, view const * const b) {
-    diff_hunk * const hunk = malloc(sizeof(diff_hunk));
-    *hunk = (diff_hunk) {.a = a, .b = b};
-    return hunk;
+        diff_hunk * const prev, view const * const a, view const * const b) {
+    diff_hunk * const new_hunk = malloc(sizeof(diff_hunk));
+    *new_hunk = (diff_hunk) {.a = a, .b = b};
+    if (prev != NULL) {
+        prev->next = new_hunk;
+    }
+    return new_hunk;
 }
 
-typedef GSList * hunks;
+void diff_hunk_free(diff_hunk * head) {
+    while (head != NULL) {
+        diff_hunk * prev = head;
+        head = head->next;
+        free(prev);
+    }
+}
 
-hunks pair_blocks(blocks a, blocks b) {
+diff_hunk * pair_blocks(blocks a, blocks b) {
     block const * a_block, * b_block;
     hash a_anchor, b_anchor;
     #define pop_block(a_or_b) \
         a_or_b##_block = (a_or_b != NULL) ? a_or_b->data : NULL;\
         a_or_b##_anchor = (a_or_b##_block != NULL) ? a_or_b##_block->hash : 0;\
-        a_or_b = g_slist_next(a_or_b);
+        a_or_b = (a_or_b != NULL) ? a_or_b->next : NULL;
     pop_block(a)
     pop_block(b)
-    hunks result = NULL;
+    diff_hunk * head = NULL, * tail = NULL;
     unsigned a_offset = 0, b_offset = 0;
-    unsigned a_start = 0, b_start = 0;  //  Is this right?
+    unsigned a_start = 0, b_start = 0;
     while ((a_block != NULL) || (b_block != NULL)) {
         if (a_block != NULL) {
             a_start = a_block->start + a_offset;
@@ -146,8 +155,7 @@ hunks pair_blocks(blocks a, blocks b) {
         }
         if (a_anchor == b_anchor) {
             //  TODO: Assert the starts are equal
-            result = g_slist_prepend(result, diff_hunk_new(
-                &(a_block->v), &(b_block->v)));
+            tail = diff_hunk_new(tail, &(a_block->v), &(b_block->v));
             unsigned const hunk_len = (a_block->length > b_block->length) ?
                 a_block->length : b_block->length;
             a_offset += hunk_len - a_block->length;
@@ -157,21 +165,22 @@ hunks pair_blocks(blocks a, blocks b) {
         } else {
             if ((b_block == NULL) || (a_start > b_start)) {
                 //  a_block is next insertion in our virtual stream of diffs
-                result = g_slist_prepend(result, diff_hunk_new(
-                    &(a_block->v), NULL));
+                tail = diff_hunk_new(tail, &(a_block->v), NULL);
                 b_offset += a_block->length;
                 pop_block(a)
             } else {
                 //  b_block is next insertion in our virtual stream of diffs
-                result = g_slist_prepend(result, diff_hunk_new(
-                    NULL, &(b_block->v)));
+                tail = diff_hunk_new(tail, NULL, &(b_block->v));
                 a_offset += b_block->length;
                 pop_block(b)
             }
         }
+        if ((head == NULL) && (tail != NULL)) {
+            head = tail;
+        }
     }
     #undef pop_block
-    return g_slist_reverse(result);
+    return head;
 }
 
 int main() {
@@ -192,10 +201,9 @@ int main() {
 
     blocks unique_a = unique_blocks(a_chunks, b_chunks);
     blocks unique_b = unique_blocks(b_chunks, a_chunks);
-    hunks h = pair_blocks(unique_a, unique_b);
-    diff_hunk * dh = h->data;
+    diff_hunk * dh = pair_blocks(unique_a, unique_b);
     printf("bs: %u be: %u\n", dh->b->start, dh->b->end);
-    g_slist_free(h);
+    diff_hunk_free(dh);
     g_slist_free_full(unique_a, free);
     g_slist_free_full(unique_b, free);
 }
