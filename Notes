@@ -1,2 +1,5 @@
-# To build:
+# To build stream_diff.c:
 gcc -std=c99 stream_diff.c -lsndfile
+
+# To build diff.c
+gcc-4.8.3 src/diff.c -ggdb -fms-extensions --std=c99 -I/usr/include/glib-2.0 -I/usr/lib64/glib-2.0/include -lglib-2.0 -Wall
