@@ -1,93 +1,9 @@
-#include <glib.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
 #include "../include/diff.h"
-
-typedef unsigned long hash;
-
-typedef struct chunk {
-    union {
-        struct view;
-        view v;
-    };
-    hash hash;
-    struct chunk * next;
-} chunk;
-
-typedef chunk * chunks;
-
-chunk * chunk_new_malloc(
-        chunk * const prev, unsigned const start, unsigned const end,
-        hash const h) {
-    chunk *new_chunk = malloc(sizeof(chunk));
-    *new_chunk = (chunk) {.start = start, .end = end, .hash = h};
-    if (prev != NULL) {
-        prev->next = new_chunk;
-    }
-    return new_chunk;
-}
-
-void chunk_free(chunk * head) {
-    while (head != NULL) {
-        chunk * prev = head;
-        head = head->next;
-        free(prev);
-    }
-}
-
-chunk * chunk_new(
-        char const * const source, chunk * const prev, const unsigned start,
-        const unsigned end) {
-    char substr[end - start + 1];
-    snprintf(substr, end - start + 1, "%s", source + start);
-    return chunk_new_malloc(prev, start, end, g_str_hash(substr));
-}
-
-typedef GHashTable * const hash_multiset;
-
-hash_multiset hash_multiset_new() {
-    return g_hash_table_new_full(
-        &g_direct_hash,
-        &g_direct_equal,
-        /*key destroy*/ NULL,
-        /*value destroy*/ NULL);
-}
-
-void hash_multiset_insert(hash_multiset set, const hash key) {
-    gpointer ptr = GUINT_TO_POINTER(key);
-    gpointer h = g_hash_table_lookup(set, ptr);
-    //  A failed lookup comes back with NULL (0)
-    g_hash_table_insert(set, ptr, h+1);
-}
-
-hash hash_multiset_pop(hash_multiset set, const hash key) {
-    gpointer ptr = GUINT_TO_POINTER(key);
-    hash h = GPOINTER_TO_UINT(g_hash_table_lookup(set, ptr));
-    if (h == 1) {
-        g_hash_table_remove(set, ptr);
-    } else if (h > 1) {
-        g_hash_table_insert(set, ptr, GUINT_TO_POINTER(h-1));
-    }
-    return GPOINTER_TO_UINT(h);
-}
-
-void hash_multiset_destroy(hash_multiset set) {
-    g_hash_table_destroy(set);
-}
-
-// The hash of a block is the hash of its preceeding chunk common to both
-// streams used as an anchor to align the streams.
-typedef chunk block;
-
-typedef block * blocks;
-
-block * block_new(
-        block * prev, chunk const * const previous_common,
-        const unsigned end) {
-    return chunk_new_malloc(
-        prev, previous_common->end, end, previous_common->hash);
-}
+#include "chunk.h"
+#include "block.h"
+#include "hash_multiset.h"
+#include <stdio.h>
+#include <assert.h>
 
 blocks unique_blocks(restrict chunks ours, restrict chunks theirs) {
     if (ours == NULL) {
@@ -129,24 +45,6 @@ blocks unique_blocks(restrict chunks ours, restrict chunks theirs) {
     }
     hash_multiset_destroy(their_hashes);
     return head;
-}
-
-diff_hunk * diff_hunk_new(
-        diff_hunk * const prev, view const * const a, view const * const b) {
-    diff_hunk * const new_hunk = malloc(sizeof(diff_hunk));
-    *new_hunk = (diff_hunk) {.a = a, .b = b};
-    if (prev != NULL) {
-        prev->next = new_hunk;
-    }
-    return new_hunk;
-}
-
-void diff_hunk_free(diff_hunk * head) {
-    while (head != NULL) {
-        diff_hunk * prev = head;
-        head = head->next;
-        free(prev);
-    }
 }
 
 diff_hunk * pair_blocks(blocks a, blocks b) {
@@ -211,11 +109,3 @@ int main() {
     chunk_free(unique_a);
     chunk_free(unique_b);
 }
-
-/*
-diff file_diff(const string a, const string b) {
-    // Open files
-    // Make views
-    // return diff_new(view_a, view_b)
-}
-*/
