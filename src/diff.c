@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "diff.h"
+#include "../include/diff.h"
 
 typedef unsigned long hash;
 
