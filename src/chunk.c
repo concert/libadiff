@@ -1,5 +1,7 @@
 #include "chunk.h"
 #include <stdlib.h>
+#include <stdio.h>
+#include <glib.h>
 
 chunk * chunk_new_malloc(
         chunk * const prev, unsigned const start, unsigned const end,

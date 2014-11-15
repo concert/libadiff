@@ -1,4 +1,4 @@
-#include "blocks.h"
+#include "block.h"
 
 block * block_new(
         block * prev, chunk const * const previous_common,

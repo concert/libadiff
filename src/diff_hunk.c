@@ -1,4 +1,5 @@
 #include "diff_hunk.h"
+#include <stdlib.h>
 
 diff_hunk * diff_hunk_new(
         diff_hunk * const prev, view const * const a, view const * const b) {

@@ -2,6 +2,7 @@
 #include "chunk.h"
 #include "block.h"
 #include "hash_multiset.h"
+#include "diff_hunk.h"
 #include <stdio.h>
 #include <assert.h>
 
