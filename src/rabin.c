@@ -1,3 +1,4 @@
+#include "rabin.h"
 #include <stdio.h>
 #include <math.h>
 
@@ -13,25 +14,39 @@ static inline unsigned sub(unsigned a, unsigned b) {
     return a ^ b;
 }
 
-unsigned f(unsigned i) {
+static unsigned f(unsigned i) {
     if (i >= pow(2, 9)) {
         return sub(i, irreducible_polynomial);
     }
     return i;
 }
 
-int main() {
-    unsigned h = 0;
-    for (unsigned i; i <= 30; i++) {
-        if ((i >= window_size) && (i != 15 + 12)) {
-            h = sub(h, one_over);
-        }
-        if (i == 15) {
-            h = h << 1;
-        } else {
+unsigned hash(unsigned h, char next) {
+    for (unsigned p = 8; p > 0; p--) {
+        unsigned mask = 0x1 << (p - 1);
+        mask = mask & next;
+        if (mask != 0) {
             h = (h << 1) | 1;
+        } else {
+            h = h << 1;
         }
         h = f(h);
-        printf("pos: %u hash: %u\n", i, h);
     }
+}
+
+window windowed_hash(window w, char next) {
+    unsigned undo = w.undo_buf & 0xFF000;
+    for (unsigned p = 8; p > 0; p--) {
+        unsigned mask = 1 << (p - 1 + window_size);
+        if (undo & mask) {
+            undo ^= one_over;
+        }
+        undo = undo << 1;
+    }
+    undo &= 0x1FF;
+    w.undo_buf = (w.undo_buf << 8) | next;
+    w.undo_buf &= 0xFFFFF;
+    w.hash = w.hash ^ undo;
+    w.hash = hash(w.hash, next);
+    return w;
 }
