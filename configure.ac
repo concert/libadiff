@@ -3,8 +3,8 @@
 
 AC_PREREQ([2.69])
 AC_INIT([adifflib], [0.0], [nowhere yet])
-AM_INIT_AUTOMAKE
-AC_CONFIG_SRCDIR([src/chunk.c])
+AM_INIT_AUTOMAKE([-Wall -Werror subdir-objects])
+AC_CONFIG_SRCDIR([src/])
 AC_CONFIG_HEADERS([config.h])
 
 # Checks for programs.
@@ -25,6 +25,5 @@ AC_FUNC_MALLOC
 
 PKG_CHECK_MODULES([GLIB], [glib-2.0])
 
-AC_CONFIG_FILES([Makefile
-                 src/Makefile])
+AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

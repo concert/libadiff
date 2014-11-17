@@ -3,7 +3,7 @@
 
 // Test that first byte comes out directly in the hash
 static void test_pre_remainder_hash() {
-    g_assert_cmpuint(hash(0, 0xFF), ==, 0xFF);
+    g_assert_cmphex(hash(0, 0xFF), ==, 0xFF);
 }
 
 // Test that the rolling hash settles
@@ -14,7 +14,7 @@ static void test_rolling_settles() {
     }
     unsigned h = w.hash;
     w = windowed_hash(w, 0xFF);
-    g_assert_cmpuint(h, ==, w.hash);
+    g_assert_cmphex(h, ==, w.hash);
 }
 
 int main(int argc, char **argv) {
