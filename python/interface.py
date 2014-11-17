@@ -1,6 +1,6 @@
 from asyncio import get_event_loop
 
-from terminal import Terminal
+from terminal import Terminal, Keyboard
 
 loop = get_event_loop()
 
@@ -8,10 +8,11 @@ loop = get_event_loop()
 class DiffApp:
     def __init__(self):
         self.terminal = Terminal()
+        self.keyboard = Keyboard()
         self.loop = get_event_loop()
 
     def _read_stdin(self):
-        print(self.terminal.infile.read())
+        print(self.keyboard[self.terminal.infile.read()])
 
     def run(self):
         if self.terminal.infile.isatty():
