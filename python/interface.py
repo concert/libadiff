@@ -1,5 +1,6 @@
 from asyncio import get_event_loop
 import sys
+import argh
 
 from terminal import Terminal, Keyboard
 
@@ -7,7 +8,9 @@ loop = get_event_loop()
 
 
 class DiffApp:
-    def __init__(self):
+    def __init__(self, filename_a, filename_b):
+        self.filename_a = filename_a
+        self.filename_b = filename_b
         self.terminal = Terminal()
         self.keyboard = Keyboard()
         self.bindings = {
@@ -34,5 +37,11 @@ class DiffApp:
                 self._do_exit('Keyboard interrupt')
 
 
+def diff(filename_a, filename_b):
+    '''Mock app that diffs two audio streams and provides a UI to the user to
+    explore that diff.'''
+    DiffApp(filename_a, filename_b).run()
+
+
 if __name__ == '__main__':
-    DiffApp().run()
+    argh.dispatch_command(diff)
