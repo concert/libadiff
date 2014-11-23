@@ -38,10 +38,10 @@ static void test_hash_distributive() {
 static void test_rolling_settles() {
     window_data w = window_data_init();
     for (unsigned i = 0; i < 4; i++) {
-        windowed_hash(&w, 0xFF);
+        window_data_update(&w, 0xFF);
     }
-    const unsigned h0 = windowed_hash(&w, 0xFF);
-    const unsigned h1 = windowed_hash(&w, 0xFF);
+    const unsigned h0 = window_data_update(&w, 0xFF);
+    const unsigned h1 = window_data_update(&w, 0xFF);
     g_assert_cmphex(h0, ==, h1);
 }
 

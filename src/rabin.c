@@ -73,7 +73,7 @@ window_data window_data_init() {
     return wd;
 }
 
-hash windowed_hash(window_data * const w, unsigned char const next) {
+hash window_data_update(window_data * const w, unsigned char const next) {
     unsigned undo = 0;
     for (unsigned p = 8; p > 0; p--) {
         unsigned mask = 1 << (p - 1 + window_size);

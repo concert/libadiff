@@ -4,5 +4,5 @@ gcc -std=c99 stream_diff.c -lsndfile
 # To build diff.c
 CC="gcc-4.8.3" CFLAGS="-fms-extensions -std=c11" ./configure && make
 
-# To build the test
-gcc-4.8.3 tests/unittest_multiset.c -ggdb -fms-extensions --std=c99 -Isrc/ -I/usr/include/glib-2.0 -I/usr/lib64/glib-2.0/include -lglib-2.0 -Wall src/diff-hash_multiset.o
+# To build the tests
+make check
