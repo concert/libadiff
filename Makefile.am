@@ -1,6 +1,6 @@
-bin_PROGRAMS=diff
-diff_CFLAGS=$(GLIB_CFLAGS)
-diff_SOURCES= \
+bin_PROGRAMS = diff
+diff_CFLAGS = $(GLIB_CFLAGS)
+diff_SOURCES = \
 	src/block.c \
 	src/chunk.c \
 	src/diff.c \
@@ -8,7 +8,14 @@ diff_SOURCES= \
 	src/hash_multiset.c
 diff_LDADD=$(GLIB_LIBS)
 
-check_PROGRAMS = unittest_multiset
+check_PROGRAMS = unittest_multiset unittest_rabin
+
+unittest_rabin_CFLAGS=$(GLIB_CFLAGS) -Iinclude
+unittest_rabin_SOURCES = \
+	tests/unittest_rabin.c \
+	src/rabin.c
+unittest_rabin_LDADD=$(GLIB_LIBS)
+
 unittest_multiset_CFLAGS=$(GLIB_CFLAGS) -Isrc
 unittest_multiset_SOURCES = \
 	tests/unittest_multiset.c \

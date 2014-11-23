@@ -1,6 +1,5 @@
-#include "rabin.h"
+#include "../include/rabin.h"
 #include <stdio.h>
-#include <math.h>
 
 const unsigned hash_len = 9;
 // irreducible_polynomial = pow(2, 9) + pow(2, 1) + pow(2, 0);
@@ -18,7 +17,7 @@ static inline unsigned sub(unsigned a, unsigned b) {
 static unsigned f_pow_t_l(unsigned l) {
     unsigned v_shift = l + 1 - hash_len;
     hash div_window = 0;
-    unsigned mask = pow(2, hash_len - 1);
+    unsigned mask = 1 << hash_len - 1;
     unsigned reduce = 1;
     while (v_shift--) {
         div_window <<= 1;
@@ -31,7 +30,7 @@ static unsigned f_pow_t_l(unsigned l) {
 }
 
 static unsigned f(unsigned i) {
-    if (i >= pow(2, 9)) {
+    if (i >= (1 << hash_len)) {
         return sub(i, irreducible_polynomial);
     }
     return i;
