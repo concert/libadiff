@@ -7,20 +7,28 @@ const unsigned irreducible_polynomial = 515;
 
 const unsigned window_size = 12;
 
-// f(t^l)
+// f(pow(t,l))
+// Performs polynomial division (currently fixed to by the irreducible
+// polynomial) returning the remainder
 static unsigned f_pow_t_l(unsigned l) {
-    unsigned v_shift = l + 1 - hash_len;
-    hash div_window = 0;
-    unsigned mask = 1 << hash_len - 1;
-    unsigned reduce = 1;
-    while (v_shift--) {
-        div_window <<= 1;
-        if (reduce) {
-            div_window ^= (irreducible_polynomial -  512);
-        }
-        reduce = mask & div_window;
+    if (l < hash_len) {  // Quotient = 0
+        return 1 << l;
     }
-    return div_window & 0x1FF;
+    unsigned quotient_power = l + 1 - hash_len;
+    hash partial_solution = 0;
+    //hash const mask = 1 << hash_len - 1;  might be faster, needs testing
+    hash quotient_coefficient = 1;
+    do {
+        partial_solution <<= 1;
+        partial_solution &= 0x1FF;  // 9 bit hash hack
+        if (quotient_coefficient) {
+            partial_solution ^= irreducible_polynomial -  512;
+        }
+        // Set conditions for the next iteration
+        quotient_coefficient = partial_solution >> (hash_len - 1);
+        //quotient_coefficient = mask & partial_solution;
+    } while (--quotient_power);
+    return partial_solution;
 }
 
 static unsigned f(unsigned i) {
