@@ -1,12 +1,27 @@
 #pragma once
 
-//unsigned const starting_hash = 1;
+typedef unsigned hash;
 
-unsigned hash(unsigned h, char next);
+
+typedef struct hash_data {
+    hash h;
+} hash_data;
+
+hash_data hash_data_init();
+
+void hash_data_reset(hash_data * const hd);
+
+hash hash_data_update(hash_data * const hd, unsigned char const next);
+
 
 typedef struct {
-    unsigned hash;
+    union {
+        struct hash_data;
+        hash_data hd;
+    };
     unsigned undo_buf;
-} window;
+} window_data;
 
-window windowed_hash(window w, char next);
+extern window_data const clear_window;
+
+hash windowed_hash(window_data * const w, unsigned char const next);
