@@ -46,18 +46,6 @@ void hash_data_reset(hash_data * const hd) {
     hd->h = 1;
 }
 
-static void bin_print(hash h) {
-    printf("(");
-    for (unsigned p = 9; p > 0; p--) {
-        if ((0x1 << (p - 1)) & h) {
-            printf("1, ");
-        } else {
-            printf("0, ");
-        }
-    }
-    printf(")\n");
-}
-
 hash hash_data_update(hash_data * const hd, unsigned char const next) {
     for (unsigned p = 8; p > 0; p--) {
         hd->h <<= 1;
