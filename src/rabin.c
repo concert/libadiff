@@ -7,10 +7,6 @@ const unsigned irreducible_polynomial = 515;
 
 const unsigned window_size = 12;
 
-static inline unsigned sub(unsigned a, unsigned b) {
-    return a ^ b;
-}
-
 // f(t^l)
 static unsigned f_pow_t_l(unsigned l) {
     unsigned v_shift = l + 1 - hash_len;
@@ -29,7 +25,7 @@ static unsigned f_pow_t_l(unsigned l) {
 
 static unsigned f(unsigned i) {
     if (i >= (1 << hash_len)) {
-        return sub(i, irreducible_polynomial);
+        return i ^ irreducible_polynomial;
     }
     return i;
 }
