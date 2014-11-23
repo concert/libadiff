@@ -6,8 +6,6 @@ const unsigned hash_len = 9;
 const unsigned irreducible_polynomial = 515;
 
 const unsigned window_size = 12;
-// unsigned one_over = pow(2, 3) + pow(2, 2);
-const unsigned one_over = 12;
 
 static inline unsigned sub(unsigned a, unsigned b) {
     return a ^ b;
