@@ -1,12 +1,12 @@
-bin_PROGRAMS = diff
-diff_CFLAGS = $(GLIB_CFLAGS)
-diff_SOURCES = \
+bin_PROGRAMS = bdiff
+bdiff_CFLAGS = $(GLIB_CFLAGS)
+bdiff_SOURCES = \
 	src/block.c \
 	src/chunk.c \
-	src/diff.c \
+	src/bdiff.c \
 	src/diff_hunk.c \
 	src/hash_multiset.c
-diff_LDADD=$(GLIB_LIBS)
+bdiff_LDADD=$(GLIB_LIBS)
 
 check_PROGRAMS = unittest_multiset unittest_rabin
 

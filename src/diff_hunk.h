@@ -1,5 +1,5 @@
 #pragma once
-#include "../include/diff.h"
+#include "../include/bdiff.h"
 
 diff_hunk * diff_hunk_new(
         diff_hunk * const prev, view const * const a, view const * const b);

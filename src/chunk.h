@@ -1,5 +1,5 @@
 #pragma once
-#include "include/diff.h"
+#include "include/bdiff.h"
 #include "hash.h"
 
 typedef struct chunk {

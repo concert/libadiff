@@ -1,4 +1,4 @@
-#include "../include/diff.h"
+#include "../include/bdiff.h"
 #include "chunk.h"
 #include "block.h"
 #include "hash_multiset.h"
