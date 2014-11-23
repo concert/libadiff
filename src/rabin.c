@@ -1,5 +1,4 @@
 #include "../include/rabin.h"
-#include <stdio.h>
 
 const unsigned hash_len = 9;
 // irreducible_polynomial = pow(2, 9) + pow(2, 1) + pow(2, 0);
@@ -60,6 +59,18 @@ hash hash_data_update(hash_data * const hd, unsigned char const next) {
         }
     }
     return hd->h;
+}
+
+void window_data_reset(window_data * const wd) {
+    hash_data_reset(&wd->hd);
+    wd->undo_buf = wd->hd.h;
+}
+
+window_data window_data_init() {
+    window_data wd = {
+        .hd = hash_data_init()};
+    window_data_reset(&wd);
+    return wd;
 }
 
 hash windowed_hash(window_data * const w, unsigned char const next) {

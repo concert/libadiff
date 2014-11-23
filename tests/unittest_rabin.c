@@ -36,7 +36,7 @@ static void test_hash_distributive() {
 
 // Test that the rolling hash settles
 static void test_rolling_settles() {
-    window_data w = {};
+    window_data w = window_data_init();
     for (unsigned i = 0; i < 4; i++) {
         windowed_hash(&w, 0xFF);
     }

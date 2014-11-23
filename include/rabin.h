@@ -22,6 +22,8 @@ typedef struct {
     unsigned undo_buf;
 } window_data;
 
-extern window_data const clear_window;
+window_data window_data_init();
 
-hash windowed_hash(window_data * const w, unsigned char const next);
+void window_data_reset(window_data * const wd);
+
+hash window_data_update(window_data * const wd, unsigned char const next);
