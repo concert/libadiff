@@ -76,3 +76,9 @@ config.status
 src/.deps/
 stamp-h1
 tests/.deps/
+
+# Build artifacts
+bdiff
+src/.dirstamp
+tests/.dirstamp
+unittest_*
