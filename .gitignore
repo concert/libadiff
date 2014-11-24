@@ -68,3 +68,11 @@ depcomp
 install-sh
 missing
 test-driver
+
+# Configure generated stuff
+Makefile
+config.h
+config.status
+src/.deps/
+stamp-h1
+tests/.deps/
