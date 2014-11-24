@@ -55,3 +55,16 @@ target/
 
 # C object files
 *.o
+
+# Autotools generated stuff
+INSTALL
+Makefile.in
+aclocal.m4
+autom4te.cache/
+compile
+config.h.in
+configure
+depcomp
+install-sh
+missing
+test-driver
