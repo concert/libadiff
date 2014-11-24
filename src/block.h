@@ -5,8 +5,6 @@
 // streams used as an anchor to align the streams.
 typedef chunk block;
 
-block * block_new(
-        block * prev, chunk const * const previous_common,
-        const unsigned end);
-
 typedef block * blocks;
+
+blocks unique_blocks(restrict chunks ours, restrict chunks theirs);
