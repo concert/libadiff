@@ -13,12 +13,8 @@ typedef struct chunk {
 
 typedef chunk * chunks;
 
-chunk * chunk_new_malloc(
+chunk * chunk_new(
         chunk * const prev, unsigned const start, unsigned const end,
         hash const h);
 
 void chunk_free(chunk * head);
-
-chunk * chunk_new(
-        char const * const source, chunk * const prev, const unsigned start,
-        const unsigned end);

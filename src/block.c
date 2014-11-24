@@ -4,7 +4,7 @@
 static block * block_new(
         block * prev, chunk const * const previous_common,
         const unsigned end) {
-    return chunk_new_malloc(
+    return chunk_new(
         prev, previous_common->end, end, previous_common->hash);
 }
 

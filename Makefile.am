@@ -5,6 +5,7 @@ bdiff_SOURCES = \
 	src/chunk.c \
 	src/bdiff.c \
 	src/diff_hunk.c \
+	src/rabin.c \
 	src/hash_multiset.c
 bdiff_LDADD=$(GLIB_LIBS)
 

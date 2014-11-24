@@ -7,8 +7,8 @@ typedef struct view {
 
 typedef struct diff_hunk {
     struct diff_hunk * next;
-    view const * a;
-    view const * b;
+    view a;
+    view b;
 } diff_hunk;
 
 void diff_hunk_free(diff_hunk * dh);

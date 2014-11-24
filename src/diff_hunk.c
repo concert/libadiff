@@ -5,7 +5,7 @@
 static diff_hunk * diff_hunk_new(
         diff_hunk * const prev, view const * const a, view const * const b) {
     diff_hunk * const new_hunk = malloc(sizeof(diff_hunk));
-    *new_hunk = (diff_hunk) {.a = a, .b = b};
+    *new_hunk = (diff_hunk) {.a = *a, .b = *b};
     if (prev != NULL) {
         prev->next = new_hunk;
     }
