@@ -1,5 +1,5 @@
 #include <glib.h>
-#include "hash_multiset.h"
+#include "hash_counting_table.h"
 
 typedef struct {
     GHashTable * hm;

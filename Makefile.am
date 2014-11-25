@@ -6,7 +6,7 @@ bdiff_SOURCES = \
 	src/bdiff.c \
 	src/hunk.c \
 	src/rabin.c \
-	src/hash_multiset.c
+	src/hash_counting_table.c
 bdiff_LDADD=$(GLIB_LIBS)
 
 check_PROGRAMS = unittest_multiset unittest_rabin
@@ -19,8 +19,8 @@ unittest_rabin_LDADD=$(GLIB_LIBS)
 
 unittest_multiset_CFLAGS=$(GLIB_CFLAGS) -Isrc
 unittest_multiset_SOURCES = \
-	tests/unittest_multiset.c \
-	src/hash_multiset.c
+	tests/unittest_hash_counting_table.c \
+	src/hash_counting_table.c
 unittest_multiset_LDADD=$(GLIB_LIBS)
 
 TESTS = $(check_PROGRAMS)

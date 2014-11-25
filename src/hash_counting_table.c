@@ -1,4 +1,4 @@
-#include "hash_multiset.h"
+#include "hash_counting_table.h"
 
 hash_multiset hash_multiset_new() {
     return g_hash_table_new(

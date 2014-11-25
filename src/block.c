@@ -1,5 +1,5 @@
 #include "block.h"
-#include "hash_multiset.h"
+#include "hash_counting_table.h"
 
 static block * block_new(
         block * prev, chunk const * const previous_common,
