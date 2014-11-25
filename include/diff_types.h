@@ -5,10 +5,10 @@ typedef struct view {
     unsigned end;  // end index in raw data
 } view;
 
-typedef struct diff_hunk {
-    struct diff_hunk * next;
+typedef struct hunk {
+    struct hunk * next;
     view a;
     view b;
-} diff_hunk;
+} hunk;
 
-void diff_hunk_free(diff_hunk * dh);
+void hunk_free(hunk * head);

@@ -1,20 +1,20 @@
 #include "../include/bdiff.h"
 #include "chunk.h"
 #include "block.h"
-#include "diff_hunk.h"
+#include "hunk.h"
 #include <stdio.h>
 
-diff_hunk * const bdiff(data_fetcher const df, void * const a, void * const b) {
+hunk * const bdiff(data_fetcher const df, void * const a, void * const b) {
     chunks a_chunks = split_data(df, a);
     chunks b_chunks = split_data(df, b);
     blocks unique_a = unique_blocks(a_chunks, b_chunks);
     blocks unique_b = unique_blocks(b_chunks, a_chunks);
     chunk_free(a_chunks);
     chunk_free(b_chunks);
-    diff_hunk * const dh = pair_blocks(unique_a, unique_b);
+    hunk * const h = pair_blocks(unique_a, unique_b);
     chunk_free(unique_a);
     chunk_free(unique_b);
-    return dh;
+    return h;
 }
 
 typedef struct {
@@ -40,7 +40,7 @@ unsigned test_reader(void * source, unsigned n_items, char * buffer) {
 int main() {
     test_data a = {.data = "foobarbaz", .length = 9};
     test_data b = {.data = "foobarbam", .length = 9};
-    diff_hunk * const dh = bdiff(test_reader, (void *) &a, (void *) &b);
-    printf("bs: %u be: %u\n", dh->b.start, dh->b.end);
-    diff_hunk_free(dh);
+    hunk * const h = bdiff(test_reader, (void *) &a, (void *) &b);
+    printf("bs: %u be: %u\n", h->b.start, h->b.end);
+    hunk_free(h);
 }
