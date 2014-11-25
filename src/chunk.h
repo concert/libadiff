@@ -1,5 +1,5 @@
 #pragma once
-#include "include/diff_types.h"
+#include "../include/bdiff.h"
 #include "hash.h"
 
 typedef struct chunk {
@@ -16,5 +16,7 @@ typedef chunk * chunks;
 chunk * chunk_new(
         chunk * const prev, unsigned const start, unsigned const end,
         hash const h);
+
+chunks const split_data(data_fetcher const df, void * const source);
 
 void chunk_free(chunk * head);
