@@ -1,11 +1,9 @@
 #include "hash_multiset.h"
 
 hash_multiset hash_multiset_new() {
-    return g_hash_table_new_full(
+    return g_hash_table_new(
         &g_direct_hash,
-        &g_direct_equal,
-        /*key destroy*/ NULL,
-        /*value destroy*/ NULL);
+        &g_direct_equal);
 }
 
 void hash_multiset_insert(hash_multiset set, const hash key) {
