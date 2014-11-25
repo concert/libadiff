@@ -2,12 +2,12 @@
 #include "hash.h"
 #include <glib.h>
 
-typedef GHashTable * const hash_multiset;
+typedef GHashTable * const hash_counting_table;
 
-hash_multiset hash_multiset_new();
+hash_counting_table hash_counting_table_new();
 
-void hash_multiset_insert(hash_multiset set, const hash key);
+void hash_counting_table_insert(hash_counting_table set, const hash key);
 
-hash hash_multiset_pop(hash_multiset set, const hash key);
+hash hash_counting_table_pop(hash_counting_table set, const hash key);
 
-void hash_multiset_destroy(hash_multiset set);
+void hash_counting_table_destroy(hash_counting_table set);

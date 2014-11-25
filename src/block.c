@@ -13,9 +13,9 @@ blocks unique_blocks(restrict chunks ours, restrict chunks theirs) {
         return NULL;
     }
 
-    hash_multiset their_hashes = hash_multiset_new();
+    hash_counting_table their_hashes = hash_counting_table_new();
     while (theirs != NULL) {
-        hash_multiset_insert(
+        hash_counting_table_insert(
             their_hashes, theirs->hash);
         theirs = theirs->next;
     }
@@ -24,7 +24,7 @@ blocks unique_blocks(restrict chunks ours, restrict chunks theirs) {
     chunk const zero = {.start = 0, .end = 0};
     chunk const * previous_common = &zero;
     while (ours->next != NULL) {
-        if (hash_multiset_pop(their_hashes, ours->hash)) {
+        if (hash_counting_table_pop(their_hashes, ours->hash)) {
             // We're processing a chunk common to ours and theirs
             if (ours->start != previous_common->end) {
                 // There's a gap, we skipped over some chunks unique to ours
@@ -37,7 +37,7 @@ blocks unique_blocks(restrict chunks ours, restrict chunks theirs) {
         }
         ours = ours->next;
     }
-    const unsigned hunk_end = hash_multiset_pop(their_hashes, ours->hash) ?
+    const unsigned hunk_end = hash_counting_table_pop(their_hashes, ours->hash) ?
         ours->start : ours->end;
     if (hunk_end != previous_common->end) {
         // Unique block at end
@@ -46,6 +46,6 @@ blocks unique_blocks(restrict chunks ours, restrict chunks theirs) {
             head = tail;
         }
     }
-    hash_multiset_destroy(their_hashes);
+    hash_counting_table_destroy(their_hashes);
     return head;
 }
