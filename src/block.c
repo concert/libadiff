@@ -15,7 +15,7 @@ blocks unique_blocks(restrict chunks ours, restrict chunks theirs) {
 
     hash_counting_table their_hashes = hash_counting_table_new();
     while (theirs != NULL) {
-        hash_counting_table_insert(
+        hash_counting_table_inc(
             their_hashes, theirs->hash);
         theirs = theirs->next;
     }
@@ -24,7 +24,7 @@ blocks unique_blocks(restrict chunks ours, restrict chunks theirs) {
     chunk const zero = {.start = 0, .end = 0};
     chunk const * previous_common = &zero;
     while (ours->next != NULL) {
-        if (hash_counting_table_pop(their_hashes, ours->hash)) {
+        if (hash_counting_table_dec(their_hashes, ours->hash)) {
             // We're processing a chunk common to ours and theirs
             if (ours->start != previous_common->end) {
                 // There's a gap, we skipped over some chunks unique to ours
@@ -37,8 +37,8 @@ blocks unique_blocks(restrict chunks ours, restrict chunks theirs) {
         }
         ours = ours->next;
     }
-    const unsigned hunk_end = hash_counting_table_pop(their_hashes, ours->hash) ?
-        ours->start : ours->end;
+    const unsigned hunk_end = hash_counting_table_dec(
+        their_hashes, ours->hash) ?  ours->start : ours->end;
     if (hunk_end != previous_common->end) {
         // Unique block at end
         tail = block_new(tail, previous_common, hunk_end);
