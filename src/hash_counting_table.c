@@ -13,7 +13,7 @@ void hash_counting_table_inc(hash_counting_table tab, const hash key) {
     g_hash_table_insert(tab, ptr, h+1);
 }
 
-hash hash_counting_table_dec(hash_counting_table tab, const hash key) {
+unsigned hash_counting_table_dec(hash_counting_table tab, const hash key) {
     gpointer ptr = GUINT_TO_POINTER(key);
     hash h = GPOINTER_TO_UINT(g_hash_table_lookup(tab, ptr));
     if (h == 1) {
