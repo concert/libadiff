@@ -6,11 +6,12 @@ hash_counting_table hash_counting_table_new() {
         &g_direct_equal);
 }
 
-void hash_counting_table_inc(hash_counting_table tab, const hash key) {
+unsigned hash_counting_table_inc(hash_counting_table tab, const hash key) {
     gpointer ptr = GUINT_TO_POINTER(key);
     //  A failed lookup comes back with NULL (0):
     gpointer count = g_hash_table_lookup(tab, ptr);
     g_hash_table_insert(tab, ptr, count+1);
+    return GPOINTER_TO_UINT(count);
 }
 
 unsigned hash_counting_table_dec(hash_counting_table tab, const hash key) {
