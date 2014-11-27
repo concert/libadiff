@@ -2,26 +2,26 @@
 #include "hash_counting_table.h"
 
 typedef struct {
-    GHashTable * hm;
+    GHashTable * hct;
 } hm_fixture;
 
 void hm_fixture_setup(hm_fixture *hmf, gconstpointer test_data) {
-    hmf->hm = hash_counting_table_new();
-    hash_counting_table_inc(hmf->hm, 1);
-    hash_counting_table_inc(hmf->hm, 2);
-    hash_counting_table_inc(hmf->hm, 2);
+    hmf->hct = hash_counting_table_new();
+    hash_counting_table_inc(hmf->hct, 1);
+    hash_counting_table_inc(hmf->hct, 2);
+    hash_counting_table_inc(hmf->hct, 2);
 }
 
 void hm_fixture_teardown(hm_fixture *hmf, gconstpointer test_data) {
-    hash_counting_table_destroy(hmf->hm);
+    hash_counting_table_destroy(hmf->hct);
 }
 
 void test_dec(hm_fixture *hmf, gconstpointer ignored) {
-    g_assert_cmpuint(hash_counting_table_dec(hmf->hm, 99), ==, 0);
-    g_assert_cmpuint(hash_counting_table_dec(hmf->hm, 1), ==, 1);
-    g_assert_cmpuint(hash_counting_table_dec(hmf->hm, 1), ==, 0);
-    g_assert_cmpuint(hash_counting_table_dec(hmf->hm, 2), ==, 2);
-    g_assert_cmpuint(hash_counting_table_dec(hmf->hm, 2), ==, 1);
+    g_assert_cmpuint(hash_counting_table_dec(hmf->hct, 99), ==, 0);
+    g_assert_cmpuint(hash_counting_table_dec(hmf->hct, 1), ==, 1);
+    g_assert_cmpuint(hash_counting_table_dec(hmf->hct, 1), ==, 0);
+    g_assert_cmpuint(hash_counting_table_dec(hmf->hct, 2), ==, 2);
+    g_assert_cmpuint(hash_counting_table_dec(hmf->hct, 2), ==, 1);
 }
 
 int main(int argc, char **argv) {
