@@ -21,7 +21,7 @@ static const unsigned buf_size = 4096;
  * We read data into a buffer using the provided data_fetcher, then we use a
  * rolling hash over that data to split based on the content (we split when the
  * lower n bits of the hash is zero). That means that our splitting is
- * resistant to shifts in the data from inserions and deletions. which is very
+ * resistant to shifts in the data from insertions and deletions, which is very
  * useful for comparison with other data.
  */
 chunks const split_data(data_fetcher const df, void * const source) {
