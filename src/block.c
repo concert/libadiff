@@ -63,3 +63,7 @@ blocks unique_blocks(restrict chunks ours, restrict chunks theirs) {
     hash_counting_table_destroy(their_hashes);
     return head;
 }
+
+inline void block_free(block * head) {
+    chunk_free(head);
+}

@@ -12,8 +12,8 @@ hunk * const bdiff(data_fetcher const df, void * const a, void * const b) {
     chunk_free(a_chunks);
     chunk_free(b_chunks);
     hunk * const h = pair_blocks(unique_a, unique_b);
-    chunk_free(unique_a);
-    chunk_free(unique_b);
+    block_free(unique_a);
+    block_free(unique_b);
     return h;
 }
 
