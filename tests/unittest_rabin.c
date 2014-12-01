@@ -30,7 +30,8 @@ static void test_hash_distributive() {
     const hash hash_of_sum = hda.h;
     hda.h = 0;
     hash_data hdb = {};
-    const hash sum_of_hash = long_hash_helper(&hda, arr_a, 2) ^ long_hash_helper(&hdb, arr_b, 2);
+    const hash sum_of_hash =
+        long_hash_helper(&hda, arr_a, 2) ^ long_hash_helper(&hdb, arr_b, 2);
     g_assert_cmphex(hash_of_sum, ==, sum_of_hash);
 }
 
