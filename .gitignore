@@ -81,4 +81,8 @@ tests/.deps/
 bdiff
 src/.dirstamp
 tests/.dirstamp
-unittest_*
+unittest_rabin
+unittest_bdiff
+
+# Test artifacts
+*.trs

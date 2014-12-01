@@ -9,7 +9,7 @@ bdiff_SOURCES = \
 	src/hash_counting_table.c
 bdiff_LDADD=$(GLIB_LIBS)
 
-check_PROGRAMS = unittest_hash_counting_table unittest_rabin
+check_PROGRAMS = unittest_rabin unittest_bdiff
 
 unittest_rabin_CFLAGS=$(GLIB_CFLAGS) -Iinclude
 unittest_rabin_SOURCES = \
@@ -17,10 +17,15 @@ unittest_rabin_SOURCES = \
 	src/rabin.c
 unittest_rabin_LDADD=$(GLIB_LIBS)
 
-unittest_hash_counting_table_CFLAGS=$(GLIB_CFLAGS) -Isrc
-unittest_hash_counting_table_SOURCES = \
+unittest_bdiff_CFLAGS=$(GLIB_CFLAGS) -Isrc
+unittest_bdiff_SOURCES = \
 	tests/unittest_hash_counting_table.c \
-	src/hash_counting_table.c
-unittest_hash_counting_table_LDADD=$(GLIB_LIBS)
+	src/hash_counting_table.c \
+	tests/unittest_block.c \
+	src/block.c \
+	src/chunk.c \
+	src/rabin.c \
+	tests/unittest_bdiff.c
+unittest_bdiff_LDADD=$(GLIB_LIBS)
 
 TESTS = $(check_PROGRAMS)
