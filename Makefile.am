@@ -21,6 +21,10 @@ unittest_bdiff_CFLAGS=$(GLIB_CFLAGS) -Isrc
 unittest_bdiff_SOURCES = \
 	tests/unittest_hash_counting_table.c \
 	src/hash_counting_table.c \
+	tests/unittest_block.c \
+	src/block.c \
+	src/chunk.c \
+	src/rabin.c \
 	tests/unittest_bdiff.c
 unittest_bdiff_LDADD=$(GLIB_LIBS)
 
