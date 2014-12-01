@@ -17,6 +17,7 @@ chunk * chunk_new(
         chunk * const prev, unsigned const start, unsigned const end,
         hash const h);
 
-chunks const split_data(data_fetcher const df, void * const source);
+chunks const split_data(
+    unsigned const sample_size, data_fetcher const df, void * const source);
 
 void chunk_free(chunk * head);

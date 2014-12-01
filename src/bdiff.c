@@ -4,9 +4,11 @@
 #include "hunk.h"
 #include <stdio.h>
 
-hunk * const bdiff(data_fetcher const df, void * const a, void * const b) {
-    chunks a_chunks = split_data(df, a);
-    chunks b_chunks = split_data(df, b);
+hunk * const bdiff(
+        unsigned const sample_size, data_fetcher const df, void * const a,
+        void * const b) {
+    chunks a_chunks = split_data(sample_size, df, a);
+    chunks b_chunks = split_data(sample_size, df, b);
     blocks unique_a = unique_blocks(a_chunks, b_chunks);
     blocks unique_b = unique_blocks(b_chunks, a_chunks);
     chunk_free(a_chunks);
@@ -40,7 +42,7 @@ unsigned test_reader(void * source, unsigned n_items, char * buffer) {
 int main() {
     test_data a = {.data = "foobarbaz", .length = 9};
     test_data b = {.data = "foobarbam", .length = 9};
-    hunk * const h = bdiff(test_reader, (void *) &a, (void *) &b);
+    hunk * const h = bdiff(1, test_reader, (void *) &a, (void *) &b);
     printf("bs: %u be: %u\n", h->b.start, h->b.end);
     hunk_free(h);
 }

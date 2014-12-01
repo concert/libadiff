@@ -24,7 +24,9 @@ static const unsigned buf_size = 4096;
  * resistant to shifts in the data from insertions and deletions, which is very
  * useful for comparison with other data.
  */
-chunks const split_data(data_fetcher const df, void * const source) {
+chunks const split_data(
+        unsigned const sample_size, data_fetcher const df,
+        void * const source) {
     char buf[buf_size];
     chunks head = NULL, tail = NULL;
     unsigned n_read, chunk_hash, start_pos = 0, total_read = 0;
@@ -33,6 +35,10 @@ chunks const split_data(data_fetcher const df, void * const source) {
     do {
         n_read = df(source, buf_size, buf);
         for (unsigned i = 0; i < n_read; i++) {
+            for (; i < sample_size - 1; i++) {
+                hash_data_update(&hd, buf[i]);
+                window_data_update(&wd, buf[i]);
+            }
             chunk_hash = hash_data_update(&hd, buf[i]);
             if (!(window_data_update(&wd, buf[i]) & 0xFF)) {
                 tail = chunk_new(tail, start_pos, total_read, chunk_hash);
@@ -43,7 +49,7 @@ chunks const split_data(data_fetcher const df, void * const source) {
                 hash_data_reset(&hd);
                 window_data_reset(&wd);
             }
-            total_read++;
+            total_read += sample_size;
         }
     } while (n_read);
     if (total_read > start_pos) {
