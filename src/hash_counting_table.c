@@ -32,7 +32,7 @@ unsigned hash_counting_table_dec(hash_counting_table tab, const hash key) {
     } else if (count > 1) {
         g_hash_table_insert(tab, ptr, GUINT_TO_POINTER(count-1));
     }
-    return GPOINTER_TO_UINT(count);
+    return count;
 }
 
 void hash_counting_table_destroy(hash_counting_table tab) {
