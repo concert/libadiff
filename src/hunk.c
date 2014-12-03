@@ -85,7 +85,7 @@ hunk * pair_blocks(blocks a, blocks b) {
         if (b != NULL) {
             b_start = b->start + b_offset;
         }
-        if ((a != NULL) && (b != NULL) && (a->start == b->other_start)) {
+        if ((a != NULL) && (b != NULL) && (a->start == b->counterpart_start)) {
             // a and b both have different data after the common anchor (hash)
             assert(a_start == b_start);
             tail = hunk_new(tail, &(a->v), &(b->v));
@@ -100,13 +100,13 @@ hunk * pair_blocks(blocks a, blocks b) {
         } else {
             if ((b == NULL) || (a_start > b_start)) {
                 //  a is next insertion in our virtual stream of diffs
-                view v = {.start = a->other_start, .end = a->other_start};
+                view v = {.start = a->counterpart_start, .end = a->counterpart_start};
                 tail = hunk_new(tail, &(a->v), &v);
                 b_offset += a->end - a->start;
                 a = a->next;
             } else {
                 //  b is next insertion in our virtual stream of diffs
-                view v = {.start = b->other_start, .end = b->other_start};
+                view v = {.start = b->counterpart_start, .end = b->counterpart_start};
                 tail = hunk_new(tail, &v, &(b->v));
                 a_offset += b->end - b->start;
                 b = b->next;

@@ -13,7 +13,7 @@ static void assertion_helper(
 }
 
 static void test_insertion_at_start() {
-    block b = {.start = 0, .end = 1, .other_start = 0};
+    block b = {.start = 0, .end = 1, .counterpart_start = 0};
 
     hunk * h = pair_blocks(NULL, &b);
     assertion_helper(h, 0, 0, 0, 1);
@@ -27,7 +27,7 @@ static void test_insertion_at_start() {
 }
 
 static void test_insertion_at_end() {
-    block b = {.start = 100, .end = 200, .other_start = 100};
+    block b = {.start = 100, .end = 200, .counterpart_start = 100};
 
     hunk * h = pair_blocks(&b, NULL);
     assertion_helper(h, 100, 200, 100, 100);
@@ -36,8 +36,8 @@ static void test_insertion_at_end() {
 }
 
 static void test_change_at_start() {
-    block b0 = {.start = 0, .end = 50, .other_start = 0};
-    block b1 = {.start = 0, .end = 60, .other_start = 0};
+    block b0 = {.start = 0, .end = 50, .counterpart_start = 0};
+    block b1 = {.start = 0, .end = 60, .counterpart_start = 0};
 
     hunk * h = pair_blocks(&b0, &b1);
     assertion_helper(h, 0, 50, 0, 60);

@@ -19,7 +19,7 @@ typedef struct block {
         struct view;
         view v;
     };
-    unsigned other_start;
+    unsigned counterpart_start;
     struct block * next;
 } block;
 

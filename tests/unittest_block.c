@@ -14,7 +14,7 @@ static void full_contiguous_block_helper(chunks other) {
     blocks b = unique_blocks(&c0, other);
     g_assert_cmpuint(b->start, ==, 0);
     g_assert_cmpuint(b->end, ==, 3);
-    g_assert_cmpuint(b->other_start, ==, 0);
+    g_assert_cmpuint(b->counterpart_start, ==, 0);
     g_assert_null(b->next);
     block_free(b);
 }
@@ -36,7 +36,7 @@ static void test_insert_at_start() {
     blocks b = unique_blocks(&c0, &c1);
     g_assert_cmpuint(b->start, ==, 0);
     g_assert_cmpuint(b->end, ==, 1);
-    g_assert_cmpuint(b->other_start, ==, 0);
+    g_assert_cmpuint(b->counterpart_start, ==, 0);
     g_assert_null(b->next);
     block_free(b);
 }
@@ -46,7 +46,7 @@ static void test_change_at_start() {
     blocks b = unique_blocks(&c0, &other);
     g_assert_cmpuint(b->start, ==, 0);
     g_assert_cmpuint(b->end, ==, 1);
-    g_assert_cmpuint(b->other_start, ==, 0);
+    g_assert_cmpuint(b->counterpart_start, ==, 0);
     g_assert_null(b->next);
     block_free(b);
 }
@@ -58,7 +58,7 @@ static void test_change_at_end() {
     blocks b = unique_blocks(&c0, &o0);
     g_assert_cmpuint(b->start, ==, 2);
     g_assert_cmpuint(b->end, ==, 3);
-    g_assert_cmpuint(b->other_start, ==, 2);
+    g_assert_cmpuint(b->counterpart_start, ==, 2);
     g_assert_null(b->next);
     block_free(b);
 }
@@ -70,7 +70,7 @@ static void test_change_in_middle() {
     blocks b = unique_blocks(&c0, &o0);
     g_assert_cmpuint(b->start, ==, 1);
     g_assert_cmpuint(b->end, ==, 2);
-    g_assert_cmpuint(b->other_start, ==, 1);
+    g_assert_cmpuint(b->counterpart_start, ==, 1);
     g_assert_null(b->next);
     block_free(b);
 }
@@ -96,13 +96,13 @@ static void test_multiple_blocks_differ() {
     blocks b = unique_blocks(&o0, &t1);
     g_assert_cmpuint(b->start, ==, 0);
     g_assert_cmpuint(b->end, ==, 1);
-    g_assert_cmpuint(b->other_start, ==, 0);
+    g_assert_cmpuint(b->counterpart_start, ==, 0);
     g_assert_nonnull(b->next);
 
     blocks b2 = b->next;
     g_assert_cmpuint(b2->start, ==, 4);
     g_assert_cmpuint(b2->end, ==, 6);
-    g_assert_cmpuint(b->other_start, ==, 3);
+    g_assert_cmpuint(b->counterpart_start, ==, 3);
     g_assert_null(b2->next);
 
     block_free(b);

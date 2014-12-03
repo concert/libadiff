@@ -4,10 +4,10 @@
 
 static block * block_new(
         block * prev, unsigned const start, unsigned const end,
-        unsigned const other_start) {
+        unsigned const counterpart_start) {
     block * new_block = malloc(sizeof(block));
     *new_block = (block) {
-        .start = start, .end = end, .other_start = other_start};
+        .start = start, .end = end, .counterpart_start = counterpart_start};
     if (prev != NULL) {
         prev->next = new_block;
     }
