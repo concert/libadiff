@@ -67,7 +67,7 @@ blocks unique_blocks(restrict chunks ours, restrict chunks theirs) {
         }
         ours = ours->next;
     }
-    const unsigned hunk_end = hash_counting_table_dec(
+    const unsigned hunk_end = hash_counting_table_get(
         their_hashes, ours->hash) ?  ours->start : ours->end;
     if (hunk_end != previous_common->end) {
         // Unique block at end
