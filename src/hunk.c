@@ -85,7 +85,7 @@ hunk * pair_blocks(blocks a, blocks b) {
         if (b != NULL) {
             b_start = b->start + b_offset;
         }
-        if ((a != NULL) && (b != NULL) && (a->hash == b->hash)) {
+        if ((a != NULL) && (b != NULL) && (a->start == b->other_start)) {
             // a and b both have different data after the common anchor (hash)
             assert(a_start == b_start);
             tail = hunk_new(tail, &(a->v), &(b->v));

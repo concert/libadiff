@@ -14,7 +14,14 @@
  * can align the streams and compare which set of unique data in one stream can
  * be rightly compared to which in the other.
  */
-typedef chunk block;
+typedef struct block {
+    union {
+        struct view;
+        view v;
+    };
+    unsigned other_start;
+    struct block * next;
+} block;
 
 typedef block * blocks;
 

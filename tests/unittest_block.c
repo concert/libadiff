@@ -10,11 +10,11 @@ static void test_ours_null() {
     g_assert_null(unique_blocks(NULL, &c0));
 }
 
-static void full_contiguous_block_helper(blocks other) {
+static void full_contiguous_block_helper(chunks other) {
     blocks b = unique_blocks(&c0, other);
-    g_assert_cmpuint(b->hash, ==, 0);
     g_assert_cmpuint(b->start, ==, 0);
     g_assert_cmpuint(b->end, ==, 3);
+    g_assert_cmpuint(b->other_start, ==, 0);
     g_assert_null(b->next);
     block_free(b);
 }
@@ -34,9 +34,9 @@ static void test_all_unique() {
 
 static void test_insert_at_start() {
     blocks b = unique_blocks(&c0, &c1);
-    g_assert_cmpuint(b->hash, ==, 0);
     g_assert_cmpuint(b->start, ==, 0);
     g_assert_cmpuint(b->end, ==, 1);
+    g_assert_cmpuint(b->other_start, ==, 0);
     g_assert_null(b->next);
     block_free(b);
 }
@@ -44,9 +44,9 @@ static void test_insert_at_start() {
 static void test_change_at_start() {
     chunk other = {.start = 0, .end = 1, .hash = 4, .next = &c1};
     blocks b = unique_blocks(&c0, &other);
-    g_assert_cmpuint(b->hash, ==, 0);
     g_assert_cmpuint(b->start, ==, 0);
     g_assert_cmpuint(b->end, ==, 1);
+    g_assert_cmpuint(b->other_start, ==, 0);
     g_assert_null(b->next);
     block_free(b);
 }
@@ -56,9 +56,9 @@ static void test_change_at_end() {
     chunk o1 = {.start = 1, .end = 2, .hash = 2, .next = &o2};
     chunk o0 = {.start = 0, .end = 1, .hash = 1, .next = &o1};
     blocks b = unique_blocks(&c0, &o0);
-    g_assert_cmpuint(b->hash, ==, 2);
     g_assert_cmpuint(b->start, ==, 2);
     g_assert_cmpuint(b->end, ==, 3);
+    g_assert_cmpuint(b->other_start, ==, 2);
     g_assert_null(b->next);
     block_free(b);
 }
@@ -68,9 +68,9 @@ static void test_change_in_middle() {
     chunk o1 = {.start = 1, .end = 2, .hash = 4, .next = &o2};
     chunk o0 = {.start = 0, .end = 1, .hash = 1, .next = &o1};
     blocks b = unique_blocks(&c0, &o0);
-    g_assert_cmpuint(b->hash, ==, 1);
     g_assert_cmpuint(b->start, ==, 1);
     g_assert_cmpuint(b->end, ==, 2);
+    g_assert_cmpuint(b->other_start, ==, 1);
     g_assert_null(b->next);
     block_free(b);
 }
@@ -94,15 +94,15 @@ static void test_multiple_blocks_differ() {
     chunk t1 = {.start = 0, .end = 1, .hash = 2, .next = &t2};
 
     blocks b = unique_blocks(&o0, &t1);
-    g_assert_cmpuint(b->hash, ==, 0);
     g_assert_cmpuint(b->start, ==, 0);
     g_assert_cmpuint(b->end, ==, 1);
+    g_assert_cmpuint(b->other_start, ==, 0);
     g_assert_nonnull(b->next);
 
     blocks b2 = b->next;
-    g_assert_cmpuint(b2->hash, ==, 4);
     g_assert_cmpuint(b2->start, ==, 4);
     g_assert_cmpuint(b2->end, ==, 6);
+    g_assert_cmpuint(b->other_start, ==, 3);
     g_assert_null(b2->next);
 
     block_free(b);
