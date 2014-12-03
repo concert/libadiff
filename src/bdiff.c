@@ -1,6 +1,5 @@
 #include "../include/bdiff.h"
 #include "chunk.h"
-#include "block.h"
 #include "hunk.h"
 #include <stdio.h>
 

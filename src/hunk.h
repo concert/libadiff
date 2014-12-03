@@ -1,7 +1,7 @@
 #pragma once
 #include "../include/diff_types.h"
-#include "block.h"
+#include "chunk.h"
 
-hunk * pair_blocks(blocks a, blocks b);
+hunk * hunk_factory(restrict chunks ours, restrict chunks theirs);
 
 void hunk_free(hunk * head);
