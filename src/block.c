@@ -47,7 +47,7 @@ blocks unique_blocks(restrict chunks ours, restrict chunks theirs) {
     chunk const zero = {.start = 0, .end = 0};
     chunk const * previous_common = &zero;
     while (ours->next != NULL) {
-        if (hash_counting_table_dec(their_hashes, ours->hash)) {
+        if (hash_counting_table_get(their_hashes, ours->hash)) {
             // We're processing a chunk common to ours and theirs
             if (ours->start != previous_common->end) {
                 // There's a gap, we skipped over some chunks unique to ours
@@ -60,10 +60,7 @@ blocks unique_blocks(restrict chunks ours, restrict chunks theirs) {
             }
             previous_common = ours;
             while (theirs->hash != previous_common->hash) {
-                // I want to be able to decrement here so that the stuff in the
-                // table is strictly what remains, however right now I don't
-                // think we know how many times we've already decremented the
-                // counters. We might need a peek or something for above.
+                hash_counting_table_dec(their_hashes, theirs->hash);
                 theirs = theirs->next;
             }
             their_last_common = theirs->end;
