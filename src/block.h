@@ -21,6 +21,6 @@ typedef struct block {
 
 typedef block * blocks;
 
-blocks unique_blocks(restrict chunks ours, restrict chunks theirs);
+hunk * hunk_factory(restrict chunks ours, restrict chunks theirs);
 
 extern void block_free(block * head);

@@ -108,6 +108,48 @@ static void test_multiple_blocks_differ() {
     block_free(b);
 }
 
+/*! Test the situation where we have multiple changes in a repetitve stream of
+ * data, which results in duplicate "anchor" chunks:
+ * A - - - [x]~ ~ ~ - - [x]~ ~
+ * B - - - [x]~ ~   - - [x]~ ~ ~
+*/
+static void test_consecutive_duplicate_anchors() {
+    chunk o9 = {.start = 9, .end = 10, .hash = 3};  // ~
+    chunk o8 = {.start = 8, .end = 9, .hash = 3, .next = &o9};  // ~
+    chunk o7 = {.start = 7, .end = 8, .hash = 1, .next = &o8};  // - [x]
+    chunk o6 = {.start = 6, .end = 7, .hash = 1, .next = &o7};  // -
+    chunk o5 = {.start = 5, .end = 6, .hash = 2, .next = &o6};  // ~
+    chunk o4 = {.start = 4, .end = 5, .hash = 2, .next = &o5};  // ~
+    chunk o3 = {.start = 3, .end = 4, .hash = 2, .next = &o4};  // ~
+    chunk o2 = {.start = 2, .end = 3, .hash = 1, .next = &o3};  // - [x]
+    chunk o1 = {.start = 1, .end = 2, .hash = 1, .next = &o2};  // -
+    chunk o0 = {.start = 0, .end = 1, .hash = 1, .next = &o1};  // -
+
+    chunk t9 = {.start = 9, .end = 10, .hash = 5};  // ~
+    chunk t8 = {.start = 8, .end = 9, .hash = 5, .next = &t9};  // ~
+    chunk t7 = {.start = 7, .end = 8, .hash = 5, .next = &t8};  // ~
+    chunk t6 = {.start = 6, .end = 7, .hash = 1, .next = &t7};  // - [x]
+    chunk t5 = {.start = 5, .end = 6, .hash = 1, .next = &t6};  // -
+    chunk t4 = {.start = 4, .end = 5, .hash = 4, .next = &t5};  // ~
+    chunk t3 = {.start = 3, .end = 4, .hash = 4, .next = &t4};  // ~
+    chunk t2 = {.start = 2, .end = 3, .hash = 1, .next = &t3};  // - [x]
+    chunk t1 = {.start = 1, .end = 2, .hash = 1, .next = &t2};  // -
+    chunk t0 = {.start = 0, .end = 1, .hash = 1, .next = &t1};  // -
+
+    blocks b = unique_blocks(&o0, &t0);
+    g_assert_cmpint(b->start, ==, 3);
+    g_assert_cmpint(b->end, ==, 6);
+    g_assert_cmpint(b->counterpart_start, ==, 3);
+    g_assert_nonnull(b->next);
+
+    blocks b2 = b->next;
+    g_assert_cmpint(b->start, ==, 8);
+    g_assert_cmpint(b->end, ==, 10);
+    g_assert_cmpint(b->counterpart_start, ==, 7);
+    g_assert_null(b->next);
+    block_free(b);
+}
+
 void add_block_tests() {
     g_test_add_func("/block/ours_null", test_ours_null);
     g_test_add_func("/block/theirs_null", test_theirs_null);
@@ -118,4 +160,7 @@ void add_block_tests() {
     g_test_add_func("/block/change_at_end", test_change_at_end);
     g_test_add_func("/block/change_in_middle", test_change_in_middle);
     g_test_add_func("/block/multiple_blocks_differ", test_change_in_middle);
+    g_test_add_func(
+        "/block/consecutive_duplicate_anchors",
+        test_consecutive_duplicate_anchors);
 }
