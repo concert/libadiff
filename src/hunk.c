@@ -21,7 +21,9 @@ static inline void possibly_append_hunk(
         *new_hunk = (hunk) {
             .a = {.start = a_start, .end = a_end},
             .b = {.start = b_start, .end = b_end}};
-        (*tail)->next = new_hunk;
+        if (*tail != NULL) {
+            (*tail)->next = new_hunk;
+        }
         *tail = new_hunk;
         if (*head == NULL) {
             *head = *tail;
@@ -44,51 +46,42 @@ static inline void possibly_append_hunk(
  * return.
  */
 hunk * hunk_factory(restrict chunks ours, restrict chunks theirs) {
-    if (ours == NULL) {
-        return NULL;
-    }
-
     hash_counting_table their_hashes = create_hash_counting_table(theirs);
 
     hunk * head = NULL, * tail = NULL;
-    chunk zero = {.start = 1, .end = 0, .next = theirs};
-    chunk const * previous_common = &zero;
+    unsigned hunk_start_a = 0, hunk_start_b = 0;
+    chunk zero = {
+        .start = 0, .end = 0, .next = theirs};
+    chunk zero_2 = {
+        .start = 0, .end = 0, .next = ours};
     theirs = &zero;
-    while (ours->next != NULL) {
-        if (hash_counting_table_get(their_hashes, ours->hash)) {
+    ours = &zero_2;
+    for (; ours->next != NULL; ours = ours->next) {
+        chunk const * const our_active = ours->next;
+        if (hash_counting_table_get(their_hashes, our_active->hash)) {
             // We're processing a chunk common to ours and theirs
-            unsigned pre_skip_start = theirs->next->start;
-            while (theirs->next->hash != previous_common->hash) {
-                hash_counting_table_dec(their_hashes, theirs->next->hash);
+            while (theirs->next->hash != our_active->hash) {
                 theirs = theirs->next;
+                hash_counting_table_dec(their_hashes, theirs->hash);
             }
 
             possibly_append_hunk(
-                &head, &tail, ours->start, previous_common->end,
-                pre_skip_start, theirs->next->start);
+                &head, &tail, hunk_start_a, our_active->start,
+                hunk_start_b, theirs->next->start);
 
-            previous_common = ours;
+            hunk_start_a = our_active->end;
+            hunk_start_b = theirs->next->end;
+
             hash_counting_table_dec(their_hashes, theirs->next->hash);
             theirs = theirs->next;
         }
-        ours = ours->next;
     }
-    const unsigned hunk_end = hash_counting_table_get(
-        their_hashes, ours->hash) ?  ours->start : ours->end;
-
-    unsigned b_start, b_end;
-    if (theirs == NULL) {
-        b_start = b_end = 0;
-    } else {
-        b_start = theirs->end;
-        while (theirs->next != NULL) {
-            theirs = theirs->next;
-        }
-        b_end = theirs->end;
+    while (theirs->next != NULL) {
+        theirs = theirs->next;
     }
 
     possibly_append_hunk(
-        &head, &tail, previous_common->end, hunk_end, b_start, b_end);
+        &head, &tail, hunk_start_a, ours->end, hunk_start_b, theirs->end);
 
     hash_counting_table_destroy(their_hashes);
     return head;
