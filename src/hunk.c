@@ -100,12 +100,14 @@ hunk * pair_blocks(blocks a, blocks b) {
         } else {
             if ((b == NULL) || (a_start > b_start)) {
                 //  a is next insertion in our virtual stream of diffs
-                tail = hunk_new(tail, &(a->v), NULL);
+                view v = {.start = a->other_start, .end = a->other_start};
+                tail = hunk_new(tail, &(a->v), &v);
                 b_offset += a->end - a->start;
                 a = a->next;
             } else {
                 //  b is next insertion in our virtual stream of diffs
-                tail = hunk_new(tail, NULL, &(b->v));
+                view v = {.start = b->other_start, .end = b->other_start};
+                tail = hunk_new(tail, &v, &(b->v));
                 a_offset += b->end - b->start;
                 b = b->next;
             }
