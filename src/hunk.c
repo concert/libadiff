@@ -31,20 +31,6 @@ static inline void possibly_append_hunk(
     }
 }
 
-/*! Takes two lists of content-defined data chunks and returns contiguous
- * sections of the first that are not in the second.
- *
- * We use a hash table to store counts of the data chunks' hashes from the
- * second list ("theirs"), so that we can quickly verify whether they appear in
- * the first ("ours"). (We may have repetitive data where multiple chunks have
- * the same hash value, which is why we need the counts, rather than just a
- * set of the hashes.)
- *
- * When we encounter data that is unique to the first (which here we determine
- * by noticing gaps in the data common to both lists of chunks), we create
- * block objects recording those portions of data, which is what we eventually
- * return.
- */
 hunk * hunk_factory(restrict chunks ours, restrict chunks theirs) {
     hash_counting_table their_hashes = create_hash_counting_table(theirs);
 
