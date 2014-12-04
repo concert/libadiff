@@ -16,6 +16,9 @@ chunk * chunk_new(
 
 static const unsigned buf_size = 4096;
 
+// 2**32 (truncated) + 2**7 + 2**3 + 2**2 + 2**0
+hash const irreducible_polynomial = 141;
+
 /*! Breaks data into chunks by splitting based on content.
  *
  * We read data into a buffer using the provided data_fetcher, then we use a
@@ -29,9 +32,12 @@ chunks const split_data(
         void * const source) {
     char buf[buf_size];
     chunks head = NULL, tail = NULL;
-    unsigned n_read, chunk_hash, start_pos = 0, total_read = 0;
-    hash_data hd = hash_data_init();
-    window_data wd = window_data_init();
+    unsigned n_read, start_pos = 0, total_read = 0;
+    hash chunk_hash;
+    hash_data hd = hash_data_init(irreducible_polynomial);
+    unsigned const window_buffer_size = sample_size * 16;
+    unsigned char window_buffer[window_buffer_size];
+    window_data wd = window_data_init(&hd, window_buffer, window_buffer_size);
     do {
         n_read = df(source, buf_size, buf);
         for (unsigned i = 0; i < n_read; i++) {
