@@ -1,15 +1,11 @@
 #include "../include/rabin.h"
 
-const unsigned hash_len = 9;
-// irreducible_polynomial = pow(2, 9) + pow(2, 1) + pow(2, 0);
-const unsigned irreducible_polynomial = 515;
-
-const unsigned window_size = 12;
+const unsigned hash_len = sizeof(hash) * 8;
 
 // f(pow(t,l))
 // Performs polynomial division (currently fixed to by the irreducible
 // polynomial) returning the remainder
-static unsigned f_pow_t_l(unsigned l) {
+static hash f_pow_t_l(hash irreducible_polynomial, unsigned l) {
     if (l < hash_len) {  // Quotient = 0
         return 1 << l;
     }
@@ -19,9 +15,8 @@ static unsigned f_pow_t_l(unsigned l) {
     hash quotient_coefficient = 1;
     do {
         partial_solution <<= 1;
-        partial_solution &= 0x1FF;  // 9 bit hash hack
         if (quotient_coefficient) {
-            partial_solution ^= irreducible_polynomial -  512;
+            partial_solution ^= irreducible_polynomial;
         }
         // Set conditions for the next iteration
         quotient_coefficient = partial_solution >> (hash_len - 1);
@@ -30,15 +25,8 @@ static unsigned f_pow_t_l(unsigned l) {
     return partial_solution;
 }
 
-static unsigned f(unsigned i) {
-    if (i >= (1 << hash_len)) {
-        return i ^ irreducible_polynomial;
-    }
-    return i;
-}
-
-hash_data hash_data_init() {
-    hash_data hd = {};
+hash_data hash_data_init(hash const irreducible_polynomial) {
+    hash_data hd = {.irreducible_polynomial = irreducible_polynomial};
     hash_data_reset(&hd);
     return hd;
 }
@@ -48,14 +36,17 @@ void hash_data_reset(hash_data * const hd) {
 }
 
 hash hash_data_update(hash_data * const hd, unsigned char const next) {
+    static hash const most_significant_bit =
+        0x1 << ((sizeof(hash) * 8) - 1);
     for (unsigned p = 8; p > 0; p--) {
+        const hash overflowed = hd->h & most_significant_bit;
         hd->h <<= 1;
         unsigned const mask = 0x1 << (p - 1);
         if (mask & next) {
-            hd->h |= 1;
+            hd->h |= 0x1;
         }
-        if (hd->h & 0x200) {
-            hd->h ^= irreducible_polynomial;
+        if (overflowed) {
+            hd->h ^= hd->irreducible_polynomial;
         }
     }
     return hd->h;
@@ -63,26 +54,36 @@ hash hash_data_update(hash_data * const hd, unsigned char const next) {
 
 void window_data_reset(window_data * const wd) {
     hash_data_reset(&wd->hd);
-    wd->undo_buf = wd->hd.h;
+    for (unsigned i = 0; i < wd->window_size - 1; i++) {
+        wd->undo_buf[i] = 0;
+    }
+    wd->undo_buf[wd->window_size - 1] = wd->hd.h;
+    wd->buf_pos = 0;
 }
 
-window_data window_data_init() {
+window_data window_data_init(
+        hash_data const * const h, unsigned char * const window_buffer,
+        unsigned const window_size) {
     window_data wd = {
-        .hd = hash_data_init()};
+        .hd = *h, .window_size = window_size, .undo_buf = window_buffer};
     window_data_reset(&wd);
     return wd;
 }
 
 hash window_data_update(window_data * const w, unsigned char const next) {
-    unsigned undo = 0;
+    hash undo = 0;
     for (unsigned p = 8; p > 0; p--) {
-        unsigned mask = 1 << (p - 1 + window_size);
-        if (w->undo_buf & mask) {
-            unsigned us = f_pow_t_l(p - 1 + window_size);
-            undo ^= us;
+        unsigned char mask = 0x1 << (p - 1);
+        if (w->undo_buf[w->buf_pos] & mask) {
+            undo ^= f_pow_t_l(
+                w->irreducible_polynomial,
+                p - 1 + ((w->window_size - 1) * 8));
         }
     }
-    w->undo_buf = (w->undo_buf << 8) | next;
+    w->undo_buf[w->buf_pos] = next;
+    if (++w->buf_pos == w->window_size) {
+        w->buf_pos = 0;
+    }
     w->h = w->h ^ undo;
     hash_data_update(&w->hd, next);
     return w->h;

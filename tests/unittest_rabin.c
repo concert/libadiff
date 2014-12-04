@@ -2,9 +2,12 @@
 #include <stdio.h>
 #include "rabin.h"
 
+// 2**32 (truncated) + 2**7 + 2**3 + 2**2 + 2**0
+hash const irreducible_polynomial = 141;
+
 // Test that first byte comes out directly in the hash
 static void test_pre_remainder_hash() {
-    hash_data hd = hash_data_init();
+    hash_data hd = hash_data_init(irreducible_polynomial);
     g_assert_cmphex(hash_data_update(&hd, 0xAB), ==, 0x1AB);
 }
 
@@ -21,24 +24,33 @@ static hash long_hash_helper(
 static void test_hash_distributive() {
     // Initialise hash to zero because otherwise it gets complicated to add the
     // streams
-    hash_data hda = {};
-    char const arr_a[2] = {0xF2, 0x34};
-    char const arr_b[2] = {0xFB, 0xCD};
-    for (unsigned i=0; i < 2; i++) {
+    hash_data hda = hash_data_init(irreducible_polynomial);
+    hda.h = 0;
+    #define n_bytes 5
+    char const arr_a[n_bytes] = {0xF2, 0x34, 0x11, 0xF4, 0x9B};
+    char const arr_b[n_bytes] = {0xFB, 0xCD, 0xAD, 0x42, 0xE2};
+    for (unsigned i=0; i < n_bytes; i++) {
         hash_data_update(&hda, arr_a[i] ^ arr_b[i]);
     }
     const hash hash_of_sum = hda.h;
     hda.h = 0;
-    hash_data hdb = {};
+    hash_data hdb = hash_data_init(irreducible_polynomial);
+    hdb.h = 0;
     const hash sum_of_hash =
-        long_hash_helper(&hda, arr_a, 2) ^ long_hash_helper(&hdb, arr_b, 2);
+        long_hash_helper(&hda, arr_a, n_bytes) ^
+        long_hash_helper(&hdb, arr_b, n_bytes);
+    #undef n_bytes
     g_assert_cmphex(hash_of_sum, ==, sum_of_hash);
 }
 
 // Test that the rolling hash settles
 static void test_rolling_settles() {
-    window_data w = window_data_init();
-    for (unsigned i = 0; i < 4; i++) {
+    hash_data hd = hash_data_init(irreducible_polynomial);
+    #define window_size 16
+    unsigned char buffer[window_size];
+    window_data w = window_data_init(&hd, buffer, window_size);
+    #undef window_size
+    for (unsigned i = 0; i < 24; i++) {
         window_data_update(&w, 0xFF);
     }
     const unsigned h0 = window_data_update(&w, 0xFF);
