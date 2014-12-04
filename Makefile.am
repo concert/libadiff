@@ -1,7 +1,6 @@
 bin_PROGRAMS = bdiff
 bdiff_CFLAGS = $(GLIB_CFLAGS)
 bdiff_SOURCES = \
-	src/block.c \
 	src/chunk.c \
 	src/bdiff.c \
 	src/hunk.c \
@@ -19,10 +18,10 @@ unittest_rabin_LDADD=$(GLIB_LIBS)
 
 unittest_bdiff_CFLAGS=$(GLIB_CFLAGS) -Isrc
 unittest_bdiff_SOURCES = \
+	tests/unittest_hunk.c \
+	src/hunk.c \
 	tests/unittest_hash_counting_table.c \
 	src/hash_counting_table.c \
-	tests/unittest_block.c \
-	src/block.c \
 	src/chunk.c \
 	src/rabin.c \
 	tests/unittest_bdiff.c
