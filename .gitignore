@@ -73,14 +73,13 @@ test-driver
 Makefile
 config.h
 config.status
-src/.deps/
+**/.deps/
 stamp-h1
-tests/.deps/
 
 # Build artifacts
 bdiff
-src/.dirstamp
-tests/.dirstamp
+diff_frames
+**/.dirstamp
 unittest_rabin
 unittest_bdiff
 
