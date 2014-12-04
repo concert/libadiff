@@ -8,7 +8,7 @@ hunk * const bdiff(
         void * const b) {
     chunks a_chunks = split_data(sample_size, df, a);
     chunks b_chunks = split_data(sample_size, df, b);
-    hunk * const h = hunk_factory(a_chunks, b_chunks);
+    hunk * const h = diff_chunks(a_chunks, b_chunks);
     chunk_free(a_chunks);
     chunk_free(b_chunks);
     return h;

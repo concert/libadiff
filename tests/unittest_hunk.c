@@ -7,11 +7,11 @@ static chunk c1 = {.start = 1, .end = 2, .hash = 2, .next = &c2};
 static chunk c0 = {.start = 0, .end = 1, .hash = 1, .next = &c1};
 
 static void test_both_null() {
-    g_assert_null(hunk_factory(NULL, NULL));
+    g_assert_null(diff_chunks(NULL, NULL));
 }
 
 static void test_identical_files() {
-    g_assert_null(hunk_factory(&c0, &c0));
+    g_assert_null(diff_chunks(&c0, &c0));
 }
 
 static void assertion_helper(
@@ -25,14 +25,14 @@ static void assertion_helper(
 }
 
 static void test_a_null() {
-    hunk * h = hunk_factory(NULL, &c0);
+    hunk * h = diff_chunks(NULL, &c0);
     assertion_helper(h, 0, 0, 0, 3);
     g_assert_null(h->next);
     hunk_free(h);
 }
 
 static void test_b_null() {
-    hunk * h = hunk_factory(&c0, NULL);
+    hunk * h = diff_chunks(&c0, NULL);
     assertion_helper(h, 0, 3, 0, 0);
     g_assert_null(h->next);
     hunk_free(h);
@@ -41,7 +41,7 @@ static void test_b_null() {
 static void test_insert_at_start_a() {
     static chunk t2 = {.start = 1, .end = 2, .hash = 3};
     static chunk t1 = {.start = 0, .end = 1, .hash = 2, .next = &t2};
-    hunk * h = hunk_factory(&c0, &t1);
+    hunk * h = diff_chunks(&c0, &t1);
     assertion_helper(h, 0, 1, 0, 0);
     g_assert_null(h->next);
     hunk_free(h);
@@ -50,7 +50,7 @@ static void test_insert_at_start_a() {
 static void test_insert_at_start_b() {
     static chunk t2 = {.start = 1, .end = 2, .hash = 3};
     static chunk t1 = {.start = 0, .end = 1, .hash = 2, .next = &t2};
-    hunk * h = hunk_factory(&t1, &c0);
+    hunk * h = diff_chunks(&t1, &c0);
     assertion_helper(h, 0, 0, 0, 1);
     g_assert_null(h->next);
     hunk_free(h);
@@ -61,7 +61,7 @@ static void test_insert_at_end_a() {
     static chunk t2 = {.start = 2, .end = 3, .hash = 3, .next = &t3};
     static chunk t1 = {.start = 1, .end = 2, .hash = 2, .next = &t2};
     static chunk t0 = {.start = 0, .end = 1, .hash = 1, .next = &t1};
-    hunk * h = hunk_factory(&t0, &c0);
+    hunk * h = diff_chunks(&t0, &c0);
     assertion_helper(h, 3, 4, 3, 3);
     g_assert_null(h->next);
     hunk_free(h);
@@ -72,7 +72,7 @@ static void test_insert_at_end_b() {
     static chunk t2 = {.start = 2, .end = 3, .hash = 3, .next = &t3};
     static chunk t1 = {.start = 1, .end = 2, .hash = 2, .next = &t2};
     static chunk t0 = {.start = 0, .end = 1, .hash = 1, .next = &t1};
-    hunk * h = hunk_factory(&c0, &t0);
+    hunk * h = diff_chunks(&c0, &t0);
     assertion_helper(h, 3, 3, 3, 4);
     g_assert_null(h->next);
     hunk_free(h);
@@ -80,7 +80,7 @@ static void test_insert_at_end_b() {
 
 static void test_change_at_start() {
     chunk other = {.start = 0, .end = 1, .hash = 4, .next = &c1};
-    hunk * h = hunk_factory(&c0, &other);
+    hunk * h = diff_chunks(&c0, &other);
     assertion_helper(h, 0, 1, 0, 1);
     g_assert_null(h->next);
     hunk_free(h);
@@ -91,7 +91,7 @@ static void test_change_at_end() {
     chunk o2 = {.start = 2, .end = 3, .hash = 4, .next = &o3};
     chunk o1 = {.start = 1, .end = 2, .hash = 2, .next = &o2};
     chunk o0 = {.start = 0, .end = 1, .hash = 1, .next = &o1};
-    hunk * h = hunk_factory(&c0, &o0);
+    hunk * h = diff_chunks(&c0, &o0);
     assertion_helper(h, 2, 3, 2, 4);
     g_assert_null(h->next);
     hunk_free(h);
@@ -101,7 +101,7 @@ static void test_change_in_middle() {
     chunk o2 = {.start = 2, .end = 3, .hash = 3};
     chunk o1 = {.start = 1, .end = 2, .hash = 4, .next = &o2};
     chunk o0 = {.start = 0, .end = 1, .hash = 1, .next = &o1};
-    hunk * h = hunk_factory(&c0, &o0);
+    hunk * h = diff_chunks(&c0, &o0);
     assertion_helper(h, 1, 2, 1, 2);
     g_assert_null(h->next);
     hunk_free(h);
@@ -125,7 +125,7 @@ static void test_multiple_chunks_differ() {
     chunk t2 = {.start = 2, .end = 3, .hash = 3, .next = &t3};
     chunk t1 = {.start = 0, .end = 2, .hash = 2, .next = &t2};
 
-    hunk * h = hunk_factory(&o0, &t1);
+    hunk * h = diff_chunks(&o0, &t1);
     assertion_helper(h, 0, 1, 0, 0);
     g_assert_nonnull(h->next);
 
@@ -164,7 +164,7 @@ static void test_consecutive_duplicate_anchors() {
     chunk t1 = {.start = 1, .end = 2, .hash = 1, .next = &t2};  // -
     chunk t0 = {.start = 0, .end = 1, .hash = 1, .next = &t1};  // -
 
-    hunk * h = hunk_factory(&o0, &t0);
+    hunk * h = diff_chunks(&o0, &t0);
     assertion_helper(h, 3, 6, 3, 5);
     g_assert_nonnull(h->next);
 

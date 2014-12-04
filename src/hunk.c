@@ -31,7 +31,7 @@ static inline void possibly_append_hunk(
     }
 }
 
-hunk * hunk_factory(chunks a, chunks b) {
+hunk * diff_chunks(chunks a, chunks b) {
     hash_counting_table b_hashes = create_hash_counting_table(b);
 
     hunk * head = NULL, * tail = NULL;
