@@ -31,45 +31,43 @@ static inline void possibly_append_hunk(
     }
 }
 
-hunk * hunk_factory(restrict chunks ours, restrict chunks theirs) {
-    hash_counting_table their_hashes = create_hash_counting_table(theirs);
+hunk * hunk_factory(chunks a, chunks b) {
+    hash_counting_table b_hashes = create_hash_counting_table(b);
 
     hunk * head = NULL, * tail = NULL;
     unsigned hunk_start_a = 0, hunk_start_b = 0;
-    chunk zero = {
-        .start = 0, .end = 0, .next = theirs};
-    chunk zero_2 = {
-        .start = 0, .end = 0, .next = ours};
-    theirs = &zero;
-    ours = &zero_2;
-    for (; ours->next != NULL; ours = ours->next) {
-        chunk const * const our_active = ours->next;
-        if (hash_counting_table_get(their_hashes, our_active->hash)) {
-            // We're processing a chunk common to ours and theirs
-            while (theirs->next->hash != our_active->hash) {
-                theirs = theirs->next;
-                hash_counting_table_dec(their_hashes, theirs->hash);
+    // Initial zero-length chunks to avoid nasty first iteration logic:
+    chunk zero_a = {.start = 0, .end = 0, .next = a};
+    chunk zero_b = {.start = 0, .end = 0, .next = b};
+    a = &zero_a;
+    b = &zero_b;
+    for (; a->next != NULL; a = a->next) {
+        if (hash_counting_table_get(b_hashes, a->next->hash)) {
+            // We're processing a chunk common to a and b
+            while (b->next->hash != a->next->hash) {
+                b = b->next;
+                hash_counting_table_dec(b_hashes, b->hash);
             }
 
             possibly_append_hunk(
-                &head, &tail, hunk_start_a, our_active->start,
-                hunk_start_b, theirs->next->start);
+                &head, &tail, hunk_start_a, a->next->start,
+                hunk_start_b, b->next->start);
 
-            hunk_start_a = our_active->end;
-            hunk_start_b = theirs->next->end;
+            hunk_start_a = a->next->end;
+            hunk_start_b = b->next->end;
 
-            hash_counting_table_dec(their_hashes, theirs->next->hash);
-            theirs = theirs->next;
+            hash_counting_table_dec(b_hashes, b->next->hash);
+            b = b->next;
         }
     }
-    while (theirs->next != NULL) {
-        theirs = theirs->next;
+    while (b->next != NULL) {
+        b = b->next;
     }
 
     possibly_append_hunk(
-        &head, &tail, hunk_start_a, ours->end, hunk_start_b, theirs->end);
+        &head, &tail, hunk_start_a, a->end, hunk_start_b, b->end);
 
-    hash_counting_table_destroy(their_hashes);
+    hash_counting_table_destroy(b_hashes);
     return head;
 }
 
