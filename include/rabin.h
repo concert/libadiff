@@ -1,13 +1,15 @@
 #pragma once
+#include <inttypes.h>
 
-typedef unsigned hash;
+typedef uint32_t hash;
 
 
 typedef struct hash_data {
     hash h;
+    hash irreducible_polynomial;
 } hash_data;
 
-hash_data hash_data_init();
+hash_data hash_data_init(hash const irreducible_polynomial);
 
 void hash_data_reset(hash_data * const hd);
 
@@ -19,10 +21,14 @@ typedef struct {
         struct hash_data;
         hash_data hd;
     };
-    unsigned undo_buf;
+    unsigned window_size;
+    unsigned char * undo_buf;
+    unsigned buf_pos;
 } window_data;
 
-window_data window_data_init();
+window_data window_data_init(
+    hash_data const * const hd, unsigned char * const window_buffer,
+    unsigned const window_size);
 
 void window_data_reset(window_data * const wd);
 
