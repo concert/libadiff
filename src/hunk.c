@@ -2,14 +2,14 @@
 #include <stdlib.h>
 #include "hash_counting_table.h"
 
-static inline hash_counting_table create_hash_counting_table(chunks theirs) {
-    hash_counting_table their_hashes = hash_counting_table_new();
-    while (theirs != NULL) {
+static inline hash_counting_table create_hash_counting_table(chunks c) {
+    hash_counting_table c_hashes = hash_counting_table_new();
+    while (c != NULL) {
         hash_counting_table_inc(
-            their_hashes, theirs->hash);
-        theirs = theirs->next;
+            c_hashes, c->hash);
+        c = c->next;
     }
-    return their_hashes;
+    return c_hashes;
 }
 
 static inline void possibly_append_hunk(
