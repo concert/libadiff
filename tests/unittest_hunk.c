@@ -107,30 +107,30 @@ static void test_change_in_middle() {
     hunk_free(h);
 }
 
-static void test_multiple_blocks_differ() {
-    chunk o7 = {.start = 7, .end = 8, .hash = 3};
-    chunk o6 = {.start = 6, .end = 7, .hash = 2, .next = &o7};
-    chunk o5 = {.start = 5, .end = 6, .hash = 6, .next = &o6};
-    chunk o4 = {.start = 4, .end = 5, .hash = 5, .next = &o5};
-    chunk o3 = {.start = 3, .end = 4, .hash = 4, .next = &o4};
-    chunk o2 = {.start = 2, .end = 3, .hash = 3, .next = &o3};
-    chunk o1 = {.start = 1, .end = 2, .hash = 2, .next = &o2};
+static void test_multiple_chunks_differ() {
+    chunk o7 = {.start = 10, .end = 13, .hash = 3};
+    chunk o6 = {.start = 9, .end = 10, .hash = 2, .next = &o7};
+    chunk o5 = {.start = 7, .end = 9, .hash = 6, .next = &o6};
+    chunk o4 = {.start = 6, .end = 7, .hash = 5, .next = &o5};
+    chunk o3 = {.start = 4, .end = 6, .hash = 4, .next = &o4};
+    chunk o2 = {.start = 3, .end = 4, .hash = 3, .next = &o3};
+    chunk o1 = {.start = 1, .end = 3, .hash = 2, .next = &o2};
     chunk o0 = {.start = 0, .end = 1, .hash = 1, .next = &o1};
 
-    chunk t7 = {.start = 6, .end = 7, .hash = 3};
-    chunk t6 = {.start = 5, .end = 6, .hash = 2, .next = &t7};
-    chunk t5 = {.start = 4, .end = 5, .hash = 7, .next = &t6};
-    chunk t4 = {.start = 3, .end = 4, .hash = 7, .next = &t5};
-    chunk t3 = {.start = 2, .end = 3, .hash = 4, .next = &t4};
-    chunk t2 = {.start = 1, .end = 2, .hash = 3, .next = &t3};
-    chunk t1 = {.start = 0, .end = 1, .hash = 2, .next = &t2};
+    chunk t7 = {.start = 11, .end = 14, .hash = 3};
+    chunk t6 = {.start = 10, .end = 11, .hash = 2, .next = &t7};
+    chunk t5 = {.start = 8, .end = 10, .hash = 7, .next = &t6};
+    chunk t4 = {.start = 5, .end = 8, .hash = 7, .next = &t5};
+    chunk t3 = {.start = 3, .end = 5, .hash = 4, .next = &t4};
+    chunk t2 = {.start = 2, .end = 3, .hash = 3, .next = &t3};
+    chunk t1 = {.start = 0, .end = 2, .hash = 2, .next = &t2};
 
     hunk * h = hunk_factory(&o0, &t1);
     assertion_helper(h, 0, 1, 0, 0);
     g_assert_nonnull(h->next);
 
     hunk * h2 = h->next;
-    assertion_helper(h2, 4, 6, 3, 5);
+    assertion_helper(h2, 6, 9, 5, 10);
     g_assert_null(h2->next);
 
     hunk_free(h);
@@ -188,7 +188,7 @@ void add_hunk_tests() {
     g_test_add_func("/hunk/change_at_end", test_change_at_end);
     g_test_add_func("/hunk/change_in_middle", test_change_in_middle);
     g_test_add_func(
-        "/hunk/multiple_blocks_differ", test_multiple_blocks_differ);
+        "/hunk/multiple_chunks_differ", test_multiple_chunks_differ);
     g_test_add_func(
         "/hunk/consecutive_duplicate_anchors",
         test_consecutive_duplicate_anchors);
