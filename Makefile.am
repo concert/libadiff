@@ -1,12 +1,15 @@
-bin_PROGRAMS = bdiff
-bdiff_CFLAGS = $(GLIB_CFLAGS)
-bdiff_SOURCES = \
+bin_PROGRAMS = diff_frames
+
+diff_frames_CFLAGS = $(GLIB_CFLAGS)
+diff_frames_SOURCES = \
+	examples/diff_frames.c \
+	src/adiff.c \
 	src/chunk.c \
 	src/bdiff.c \
 	src/hunk.c \
 	src/rabin.c \
 	src/hash_counting_table.c
-bdiff_LDADD=$(GLIB_LIBS)
+diff_frames_LDADD=$(GLIB_LIBS) $(SNDFILE_LIBS)
 
 check_PROGRAMS = unittest_rabin unittest_bdiff
 

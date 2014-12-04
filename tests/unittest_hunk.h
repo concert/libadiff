@@ -1,3 +1,3 @@
 #pragma once
 
-void add_block_tests();
+void add_hunk_tests();

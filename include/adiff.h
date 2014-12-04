@@ -2,14 +2,14 @@
 
 #include "diff_types.h"
 
-enum adiff_return_code {
+typedef enum {
     ADIFF_OK = 0,
+    ADIFF_ERR_OPEN_A,
+    ADIFF_ERR_OPEN_B,
     ADIFF_ERR_CHANNELS,
     ADIFF_ERR_SAMPLE_RATE,
     ADIFF_ERR_SAMPLE_FORMAT,
-    ADIFF_ERR_OPEN_A,
-    ADIFF_ERR_OPEN_B
-};
+} adiff_return_code;
 
 typedef struct {
     adiff_return_code code;
@@ -18,4 +18,4 @@ typedef struct {
 
 diff adiff(char const * const a_path, char const * const b_path);
 
-void diff_free(diff d);
+void diff_free(diff * d);
