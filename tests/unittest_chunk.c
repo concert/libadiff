@@ -55,6 +55,7 @@ static void test_with_random_data() {
     g_assert_cmphex(last_a->hash, ==, last_b->hash);
     g_assert_cmpuint(last_a->start, ==, last_b->start);
     g_assert_cmpuint(last_a->end, ==, last_b->end);
+    g_assert_cmpuint(last_a->end, ==, 10400);
     chunk_free(a);
     chunk_free(b);
     g_rand_free(df.g_rand);

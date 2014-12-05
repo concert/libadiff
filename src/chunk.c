@@ -41,12 +41,13 @@ chunks const split_data(
     do {
         n_read = df(source, buf_size / sample_size, buf);
         for (unsigned i = 0; i < n_read; i++) {
-            for (; i < sample_size - 1; i++) {
-                hash_data_update(&hd, buf[i]);
-                window_data_update(&wd, buf[i]);
+            unsigned byte_index = i * sample_size;
+            for (; byte_index < ((i + 1) * sample_size) - 1; byte_index++) {
+                hash_data_update(&hd, buf[byte_index]);
+                window_data_update(&wd, buf[byte_index]);
             }
-            chunk_hash = hash_data_update(&hd, buf[i]);
-            if (!(window_data_update(&wd, buf[i]) & 0xFF)) {
+            chunk_hash = hash_data_update(&hd, buf[byte_index]);
+            if (!(window_data_update(&wd, buf[byte_index]) & 0xFF)) {
                 tail = chunk_new(tail, start_pos, total_read, chunk_hash);
                 start_pos = total_read;
                 if (head == NULL) {
@@ -55,7 +56,7 @@ chunks const split_data(
                 hash_data_reset(&hd);
                 window_data_reset(&wd);
             }
-            total_read += sample_size;
+            total_read++;
         }
     } while (n_read);
     if (total_read > start_pos) {
