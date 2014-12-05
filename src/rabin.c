@@ -25,8 +25,23 @@ static hash f_pow_t_l(hash irreducible_polynomial, unsigned l) {
     return partial_solution;
 }
 
+static void populate_table(
+        hash * const table, hash const irreducible_polynomial,
+        unsigned const pos) {
+    table[0] = 0x0;  // No bits is always 0
+    for (unsigned i = 0; i < 8; i++) {
+        hash const msb = f_pow_t_l(irreducible_polynomial, i + pos);
+        unsigned const msb_table_index = 0x1 << i;
+        // Add the new polynomial to those already in the table
+        for (unsigned j = 0; j < msb_table_index; j++) {
+            table[msb_table_index + j] = msb ^ table[j];
+        }
+    }
+}
+
 hash_data hash_data_init(hash const irreducible_polynomial) {
     hash_data hd = {.irreducible_polynomial = irreducible_polynomial};
+    populate_table(hd.table, irreducible_polynomial, hash_len);
     hash_data_reset(&hd);
     return hd;
 }
@@ -36,19 +51,10 @@ void hash_data_reset(hash_data * const hd) {
 }
 
 hash hash_data_update(hash_data * const hd, unsigned char const next) {
-    static hash const most_significant_bit =
-        0x1 << ((sizeof(hash) * 8) - 1);
-    for (unsigned p = 8; p > 0; p--) {
-        const hash overflowed = hd->h & most_significant_bit;
-        hd->h <<= 1;
-        unsigned const mask = 0x1 << (p - 1);
-        if (mask & next) {
-            hd->h |= 0x1;
-        }
-        if (overflowed) {
-            hd->h ^= hd->irreducible_polynomial;
-        }
-    }
+    hash const overflow = hd->table[hd->h >> (hash_len - 8)];
+    hd->h <<= 8;
+    hd->h |= next;
+    hd->h ^= overflow;
     return hd->h;
 }
 

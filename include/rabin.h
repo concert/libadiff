@@ -7,6 +7,7 @@ typedef uint32_t hash;
 typedef struct hash_data {
     hash h;
     hash irreducible_polynomial;
+    hash table[256];
 } hash_data;
 
 hash_data hash_data_init(hash const irreducible_polynomial);
