@@ -32,15 +32,15 @@ chunks const split_data(
         void * const source) {
     char buf[buf_size];
     chunks head = NULL, tail = NULL;
-    unsigned n_read, start_pos = 0, total_read = 0;
+    unsigned samples_read, start_pos = 0, total_samples_read = 0;
     hash chunk_hash;
     hash_data hd = hash_data_init(irreducible_polynomial);
     unsigned const window_buffer_size = sample_size * 16;
     unsigned char window_buffer[window_buffer_size];
     window_data wd = window_data_init(&hd, window_buffer, window_buffer_size);
     do {
-        n_read = df(source, buf_size / sample_size, buf);
-        for (unsigned i = 0; i < n_read; i++) {
+        samples_read = df(source, buf_size / sample_size, buf);
+        for (unsigned i = 0; i < samples_read; i++) {
             unsigned byte_index = i * sample_size;
             for (; byte_index < ((i + 1) * sample_size) - 1; byte_index++) {
                 hash_data_update(&hd, buf[byte_index]);
@@ -48,19 +48,20 @@ chunks const split_data(
             }
             chunk_hash = hash_data_update(&hd, buf[byte_index]);
             if (!(window_data_update(&wd, buf[byte_index]) & 0xFF)) {
-                tail = chunk_new(tail, start_pos, total_read, chunk_hash);
-                start_pos = total_read;
+                tail = chunk_new(
+                    tail, start_pos, total_samples_read, chunk_hash);
+                start_pos = total_samples_read;
                 if (head == NULL) {
                     head = tail;
                 }
                 hash_data_reset(&hd);
                 window_data_reset(&wd);
             }
-            total_read++;
+            total_samples_read++;
         }
-    } while (n_read);
-    if (total_read > start_pos) {
-        tail = chunk_new(tail, start_pos, total_read + 1, chunk_hash);
+    } while (samples_read);
+    if (total_samples_read > start_pos) {
+        tail = chunk_new(tail, start_pos, total_samples_read + 1, chunk_hash);
         if (head == NULL) {
             head = tail;
         }
