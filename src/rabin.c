@@ -72,25 +72,19 @@ window_data window_data_init(
         unsigned const window_size) {
     window_data wd = {
         .hd = *h, .window_size = window_size, .undo_buf = window_buffer};
+    populate_table(
+        wd.undo_table, wd.irreducible_polynomial, (window_size - 1) * 8);
     window_data_reset(&wd);
     return wd;
 }
 
 hash window_data_update(window_data * const w, unsigned char const next) {
-    hash undo = 0;
-    for (unsigned p = 8; p > 0; p--) {
-        unsigned char mask = 0x1 << (p - 1);
-        if (w->undo_buf[w->buf_pos] & mask) {
-            undo ^= f_pow_t_l(
-                w->irreducible_polynomial,
-                p - 1 + ((w->window_size - 1) * 8));
-        }
-    }
+    w->h ^= w->undo_table[w->undo_buf[w->buf_pos]];
+
     w->undo_buf[w->buf_pos] = next;
     if (++w->buf_pos == w->window_size) {
         w->buf_pos = 0;
     }
-    w->h = w->h ^ undo;
-    hash_data_update(&w->hd, next);
-    return w->h;
+
+    return hash_data_update(&w->hd, next);
 }

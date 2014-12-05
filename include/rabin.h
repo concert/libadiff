@@ -25,6 +25,7 @@ typedef struct {
     unsigned window_size;
     unsigned char * undo_buf;
     unsigned buf_pos;
+    hash undo_table[256];
 } window_data;
 
 window_data window_data_init(
