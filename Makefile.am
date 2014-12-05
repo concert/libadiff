@@ -25,6 +25,7 @@ unittest_bdiff_SOURCES = \
 	src/hunk.c \
 	tests/unittest_hash_counting_table.c \
 	src/hash_counting_table.c \
+	tests/unittest_chunk.c \
 	src/chunk.c \
 	src/rabin.c \
 	tests/unittest_bdiff.c
