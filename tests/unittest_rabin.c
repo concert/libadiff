@@ -43,19 +43,42 @@ static void test_hash_distributive() {
     g_assert_cmphex(hash_of_sum, ==, sum_of_hash);
 }
 
-// Test that the rolling hash settles
 static void test_rolling_settles() {
     hash_data hd = hash_data_init(irreducible_polynomial);
     #define window_size 16
     unsigned char buffer[window_size];
     window_data w = window_data_init(&hd, buffer, window_size);
-    #undef window_size
-    for (unsigned i = 0; i < 24; i++) {
+    unsigned i;
+    for (i = 0; i < window_size - 2; i++) {
         window_data_update(&w, 0xFF);
     }
-    const unsigned h0 = window_data_update(&w, 0xFF);
-    const unsigned h1 = window_data_update(&w, 0xFF);
+    unsigned h0 = window_data_update(&w, 0xFF);
+    unsigned h1 = window_data_update(&w, 0xFF);
+    g_assert_cmphex(h0, !=, h1);
+    h0 = h1;
+    h1 = window_data_update(&w, 0xFF);
     g_assert_cmphex(h0, ==, h1);
+    unsigned const ff_hash = h1;
+
+    h0 = h1;
+    h1 = window_data_update(&w, 0xAB);
+    g_assert_cmphex(h0, !=, h1);
+    for (i = 0; i < window_size - 3; i++) {
+        window_data_update(&w, 0xAB);
+    }
+    h0 = window_data_update(&w, 0xAB);
+    h1 = window_data_update(&w, 0xAB);
+    g_assert_cmphex(h0, !=, h1);
+    h0 = h1;
+    h1 = window_data_update(&w, 0xAB);
+    g_assert_cmphex(h0, ==, h1);
+    g_assert_cmphex(h1, !=, ff_hash);
+
+    for (i = 0; i < window_size; i++) {
+        h0 = window_data_update(&w, 0xFF);
+    }
+    g_assert_cmphex(h0, ==, ff_hash);
+    #undef window_size
 }
 
 int main(int argc, char **argv) {
