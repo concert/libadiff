@@ -39,7 +39,7 @@ chunks const split_data(
     unsigned char window_buffer[window_buffer_size];
     window_data wd = window_data_init(&hd, window_buffer, window_buffer_size);
     do {
-        n_read = df(source, buf_size, buf);
+        n_read = df(source, buf_size / sample_size, buf);
         for (unsigned i = 0; i < n_read; i++) {
             for (; i < sample_size - 1; i++) {
                 hash_data_update(&hd, buf[i]);
