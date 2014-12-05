@@ -60,7 +60,7 @@ chunks const split_data(
         }
     } while (n_read);
     if (total_read > start_pos) {
-        tail = chunk_new(tail, start_pos, total_read, chunk_hash);
+        tail = chunk_new(tail, start_pos, total_read + 1, chunk_hash);
         if (head == NULL) {
             head = tail;
         }
