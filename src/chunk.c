@@ -14,7 +14,7 @@ chunk * chunk_new(
     return new_chunk;
 }
 
-static const unsigned buf_size = 4096;
+static const unsigned buf_size = 16384;
 
 // 2**32 (truncated) + 2**7 + 2**3 + 2**2 + 2**0
 hash const irreducible_polynomial = 141;
