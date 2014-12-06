@@ -28,7 +28,7 @@ int main(int argc, char ** argv) {
                 fprintf(stderr, "No changes found");
             } else {
                 hunk const * h = d.hunks;
-                for (; h != NULL; h = h = h->next) {
+                for (; h != NULL; h = h->next) {
                     printf(
                         "%d %d %d %d\n", h->a.start, h->a.end, h->b.start,
                         h->b.end);
