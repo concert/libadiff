@@ -4,7 +4,7 @@
 
 typedef struct {
     GRand * const g_rand;
-    unsigned const first_length;
+    unsigned first_length;
     unsigned const second_length;
     unsigned pos;
 } fake_fetcher_data;
@@ -46,15 +46,20 @@ static void test_with_random_data() {
         .second_length = 10000};
     chunks a = split_data(sizeof(guint32), fake_fetcher, &df);
     g_rand_set_seed(df.g_rand, 212);
+    df.first_length = 600;
     df.pos = 0;
     chunks b = split_data(sizeof(guint32), fake_fetcher, &df);
+    g_assert_cmphex(a->hash, !=, b->hash);
+    g_assert_cmpuint(a->start, ==, 0);
+    g_assert_cmpuint(b->start, ==, 0);
+    g_assert_cmpuint(a->end, !=, b->end);
     chunks last_a = a;
     while (last_a->next != NULL) {last_a = last_a->next;}
     chunks last_b = b;
     while (last_b->next != NULL) {last_b = last_b->next;}
     g_assert_cmphex(last_a->hash, ==, last_b->hash);
-    g_assert_cmpuint(last_a->start, ==, last_b->start);
-    g_assert_cmpuint(last_a->end, ==, last_b->end);
+    g_assert_cmpuint(last_a->start + 200, ==, last_b->start);
+    g_assert_cmpuint(last_a->end + 200, ==, last_b->end);
     g_assert_cmpuint(last_a->end, ==, 10401);
     chunk_free(a);
     chunk_free(b);
