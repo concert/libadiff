@@ -33,16 +33,19 @@ chunks const split_data(
     char buf[buf_size];
     chunks head = NULL, tail = NULL;
     unsigned samples_read, start_pos = 0, total_samples_read = 0;
-    hash chunk_hash;
+    hash chunk_hash = 0;
     hash_data hd = hash_data_init(irreducible_polynomial);
     unsigned const window_buffer_size = sample_size * 16;
     unsigned char window_buffer[window_buffer_size];
     window_data wd = window_data_init(&hd, window_buffer, window_buffer_size);
     do {
         samples_read = df(source, buf_size / sample_size, buf);
-        for (unsigned i = 0; i < samples_read; i++) {
-            unsigned byte_index = i * sample_size;
-            for (; byte_index < ((i + 1) * sample_size) - 1; byte_index++) {
+        unsigned byte_index = 0;
+        for (
+                unsigned max_byte_index = sample_size - 1;
+                max_byte_index < (sample_size * samples_read);
+                max_byte_index += sample_size) {
+            for (; byte_index < max_byte_index; byte_index++) {
                 hash_data_update(&hd, buf[byte_index]);
                 window_data_update(&wd, buf[byte_index]);
             }
@@ -57,6 +60,7 @@ chunks const split_data(
                 hash_data_reset(&hd);
                 window_data_reset(&wd);
             }
+            byte_index++;
             total_samples_read++;
         }
     } while (samples_read);
