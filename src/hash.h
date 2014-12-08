@@ -1,3 +1,5 @@
 #pragma once
 
-typedef unsigned hash;
+#include <inttypes.h>
+
+typedef uint32_t hash;
