@@ -33,7 +33,7 @@ chunks const split_data(
     char buf[buf_size];
     chunks head = NULL, tail = NULL;
     unsigned samples_read, start_pos = 0, total_samples_read = 0;
-    hash chunk_hash;
+    hash chunk_hash = 0;
     hash_data hd = hash_data_init(irreducible_polynomial);
     unsigned const window_buffer_size = sample_size * 16;
     unsigned char window_buffer[window_buffer_size];
