@@ -32,7 +32,7 @@ static adiff_return_code info_cmp(const lsf_wrapped a, const lsf_wrapped b) {
 
 static unsigned fetcher(void * source, unsigned n_items, char * buffer) {
     lsf_wrapped const * const src = source;
-    return sf_readf_double(src->file, (double *) buffer, n_items);
+    return sf_readf_short(src->file, (short *) buffer, n_items);
 }
 
 static diff cmp(const lsf_wrapped a, const lsf_wrapped b) {
@@ -41,7 +41,7 @@ static diff cmp(const lsf_wrapped a, const lsf_wrapped b) {
         return (diff) {
             .code = ret_code,
             .hunks = bdiff(
-                sizeof(double) * a.info.channels, fetcher,
+                sizeof(short) * a.info.channels, fetcher,
                 (void *) &a, (void *) &b)};
     return (diff) {.code = ret_code};
 }
