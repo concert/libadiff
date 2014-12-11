@@ -77,7 +77,6 @@ config.status
 stamp-h1
 
 # Build artifacts
-bdiff
 diff_frames
 **/.dirstamp
 unittest_rabin
