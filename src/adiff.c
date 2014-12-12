@@ -30,19 +30,35 @@ static adiff_return_code info_cmp(const lsf_wrapped a, const lsf_wrapped b) {
     return ADIFF_OK;
 }
 
-static unsigned fetcher(void * source, unsigned n_items, char * buffer) {
+static unsigned int_fetcher(void * source, unsigned n_items, char * buffer) {
     lsf_wrapped const * const src = source;
     return sf_readf_short(src->file, (short *) buffer, n_items);
 }
 
+static unsigned float_fetcher(void * source, unsigned n_items, char * buffer) {
+    lsf_wrapped const * const src = source;
+    return sf_readf_float(src->file, (float *) buffer, n_items);
+}
+
 static diff cmp(const lsf_wrapped a, const lsf_wrapped b) {
     adiff_return_code ret_code = info_cmp(a, b);
-    if (ret_code == ADIFF_OK)
-        return (diff) {
-            .code = ret_code,
-            .hunks = bdiff(
-                sizeof(short) * a.info.channels, fetcher,
-                (void *) &a, (void *) &b)};
+    if (ret_code == ADIFF_OK) {
+        if (
+                ((a.info.format & SF_FORMAT_SUBMASK) == SF_FORMAT_FLOAT) |
+                ((a.info.format & SF_FORMAT_SUBMASK) == SF_FORMAT_DOUBLE)) {
+            return (diff) {
+                .code = ret_code,
+                .hunks = bdiff(
+                    sizeof(float) * a.info.channels, float_fetcher,
+                    (void *) &a, (void *) &b)};
+        } else {
+            return (diff) {
+                .code = ret_code,
+                .hunks = bdiff(
+                    sizeof(short) * a.info.channels, int_fetcher,
+                    (void *) &a, (void *) &b)};
+        }
+    }
     return (diff) {.code = ret_code};
 }
 
