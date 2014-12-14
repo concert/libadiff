@@ -1,4 +1,4 @@
-bin_PROGRAMS = diff_frames
+bin_PROGRAMS = diff_frames patch_frames
 
 diff_frames_CFLAGS = $(GLIB_CFLAGS)
 diff_frames_SOURCES = \
@@ -10,6 +10,17 @@ diff_frames_SOURCES = \
 	src/rabin.c \
 	src/hash_counting_table.c
 diff_frames_LDADD=$(GLIB_LIBS) $(SNDFILE_LIBS)
+
+patch_frames_CFLAGS = $(GLIB_CFLAGS)
+patch_frames_SOURCES = \
+	examples/patch_frames.c \
+	src/adiff.c \
+	src/chunk.c \
+	src/bdiff.c \
+	src/hunk.c \
+	src/rabin.c \
+	src/hash_counting_table.c
+patch_frames_LDADD=$(GLIB_LIBS) $(SNDFILE_LIBS)
 
 check_PROGRAMS = unittest_rabin unittest_bdiff
 
