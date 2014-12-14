@@ -48,11 +48,14 @@ static diff cmp(const lsf_wrapped a, const lsf_wrapped b) {
 
 diff adiff(const_str path_a, const_str path_b) {
     lsf_wrapped const a = sndfile_open(path_a);
-    if (a.file == NULL)
+    if (a.file == NULL) {
         return (diff) {.code = ADIFF_ERR_OPEN_A};
+    }
     lsf_wrapped const b = sndfile_open(path_b);
-    if (a.file == NULL)
+    if (b.file == NULL) {
+        sf_close(a.file);
         return (diff) {.code = ADIFF_ERR_OPEN_B};
+    }
     diff result = cmp(a, b);
     sf_close(a.file);
     sf_close(b.file);
