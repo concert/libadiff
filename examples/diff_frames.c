@@ -25,7 +25,7 @@ int main(int argc, char ** argv) {
             break;
         case ADIFF_OK:
             if (d.hunks == NULL) {
-                fprintf(stderr, "No changes found");
+                fprintf(stderr, "No changes found\n");
             } else {
                 hunk const * h = d.hunks;
                 for (; h != NULL; h = h->next) {
@@ -33,7 +33,6 @@ int main(int argc, char ** argv) {
                         "%d %d %d %d\n", h->a.start, h->a.end, h->b.start,
                         h->b.end);
                 }
-                fprintf(stderr, "OK");
             }
     }
     diff_free(&d);
