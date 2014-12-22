@@ -3,13 +3,13 @@
 #include "../include/adiff.h"
 
 static hunk * load_diff_file(char const * path) {
-    unsigned a_start, a_end, b_start, b_end;
-    hunk * head = NULL, * tail = NULL;
     FILE * diff_file = fopen(path, "r");
     if (diff_file == NULL) {
         fprintf(stderr, "Unable to open diff file: %s\n", path);
         return NULL;
     }
+    unsigned a_start, a_end, b_start, b_end;
+    hunk * head = NULL, * tail = NULL;
     while (
             fscanf(
                 diff_file, "%u %u %u %u\n",
