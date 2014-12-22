@@ -11,4 +11,8 @@ typedef struct hunk {
     view b;
 } hunk;
 
+void append_hunk(
+        hunk ** const head, hunk ** const tail, unsigned const a_start,
+        unsigned const a_end, unsigned const b_start, unsigned const b_end);
+
 void hunk_free(hunk * head);

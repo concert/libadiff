@@ -15,16 +15,7 @@ static hunk * load_diff_file(char const * path) {
                 diff_file, "%u %u %u %u\n",
                 &a_start, &a_end, &b_start, &b_end)
             == 4) {
-        hunk * const new_hunk = malloc(sizeof(hunk));
-        *new_hunk = (hunk) {
-            .a = {.start = a_start, .end = a_end},
-            .b = {.start = b_start, .end = b_end}};
-        // Append to list of hunks
-        if (tail != NULL)
-            tail->next = new_hunk;
-        tail = new_hunk;
-        if (head == NULL)
-            head = new_hunk;
+        append_hunk(&head, &tail, a_start, a_end, b_start, b_end);
     }
     return head;
 }

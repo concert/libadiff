@@ -12,22 +12,28 @@ static inline hash_counting_table create_hash_counting_table(chunks c) {
     return c_hashes;
 }
 
+void append_hunk(
+        hunk ** const head, hunk ** const tail, unsigned const a_start,
+        unsigned const a_end, unsigned const b_start, unsigned const b_end) {
+    hunk * new_hunk = malloc(sizeof(hunk));
+    *new_hunk = (hunk) {
+        .a = {.start = a_start, .end = a_end},
+        .b = {.start = b_start, .end = b_end}};
+    if (*tail != NULL) {
+        (*tail)->next = new_hunk;
+    }
+    *tail = new_hunk;
+    if (*head == NULL) {
+        *head = *tail;
+    }
+}
+
 static inline void possibly_append_hunk(
         hunk ** const head, hunk ** const tail, unsigned const a_start,
         unsigned const a_end, unsigned const b_start, unsigned const b_end) {
     if ((a_start != a_end) || (b_start != b_end)) {
         // There's a gap, we skipped over some unique chunks
-        hunk * new_hunk = malloc(sizeof(hunk));
-        *new_hunk = (hunk) {
-            .a = {.start = a_start, .end = a_end},
-            .b = {.start = b_start, .end = b_end}};
-        if (*tail != NULL) {
-            (*tail)->next = new_hunk;
-        }
-        *tail = new_hunk;
-        if (*head == NULL) {
-            *head = *tail;
-        }
+        append_hunk(head, tail, a_start, a_end, b_start, b_end);
     }
 }
 
