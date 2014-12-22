@@ -31,7 +31,7 @@ static hunk * load_diff_file(char const * path) {
 
 int main(int argc, char ** argv) {
     if (argc != 5) {
-        printf("Usage: patch_frames diff_file a_file b_file output_file\n");
+        printf("Usage: %s diff_file a_file b_file output_file\n", argv[0]);
         return -2;
     }
     hunk * const h = load_diff_file(argv[1]);
