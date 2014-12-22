@@ -39,14 +39,20 @@ int main(int argc, char ** argv) {
         fprintf(stderr, "Failed to load diff file\n");
         return -1;
     }
-    adiff_return_code const code = apatch(h, argv[2], argv[3], argv[4]);
-    // ^ this isn't quite symmetrical with adiff, is this a problem?
-    if (code != ADIFF_OK) {
-        fprintf(stderr, "Unable to apply patch\n");
-        // Whilst we have slightly more information than this we don't have
-        // enough to actually be useful
-    } else {
-        printf("Patch applied\n");
+    apatch_return_code const code = apatch(h, argv[2], argv[3], argv[4]);
+    switch (code) {
+        case APATCH_OK:
+            printf("Patch applied\n");
+            break;
+        case APATCH_ERR_OPEN_A:
+            fprintf(stderr, "Failed to open (read) %s\n", argv[2]);
+            break;
+        case APATCH_ERR_OPEN_B:
+            fprintf(stderr, "Failed to open (read) %s\n", argv[3]);
+            break;
+        case APATCH_ERR_OPEN_OUTPUT:
+            fprintf(stderr, "Failed to open (write) %s\n", argv[4]);
+            break;
     }
     hunk_free(h);
     return code;
