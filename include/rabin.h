@@ -1,9 +1,6 @@
 #pragma once
 
-#include <inttypes.h>
-
-typedef uint32_t hash;
-
+#include "src/hash.h"
 
 /** \brief Opaque structure holding state for hashing.
  */
