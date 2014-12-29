@@ -1,14 +1,27 @@
 #pragma once
 
+/** \brief Represents a slice of a larger piece of data.
+ * The start index is inclusive, the end is exclusive (like a python list).
+ * A view may be empty (contain no data), in this case start == end.
+ */
 typedef struct view {
-    unsigned start;  // start index in raw data
-    unsigned end;  // end index in raw data
+    unsigned start;
+    unsigned end;
 } view;
 
+/** \brief Represents a changed section of the file.
+ * Forms a linked list.
+ * The view in a corresponds to the view in b.
+ * Insertions are therefore represented as empty slices in a with filled slices in b.
+ * Deletions are represented as filled slices in a replaced with empty slices in b.
+ */
 typedef struct hunk {
     struct hunk * next;
     view a;
     view b;
 } hunk;
 
+/** \brief Free a linked list of hunks.
+ * \param[inout] head the head of the list to free.
+ */
 void hunk_free(hunk * head);
