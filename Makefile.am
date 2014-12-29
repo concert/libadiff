@@ -21,6 +21,7 @@ unittest_rabin_LDADD=$(GLIB_LIBS)
 
 unittest_bdiff_CFLAGS=$(GLIB_CFLAGS) -Isrc
 unittest_bdiff_SOURCES = \
+	tests/fake_fetcher.c \
 	tests/unittest_hunk.c \
 	src/hunk.c \
 	tests/unittest_hash_counting_table.c \
