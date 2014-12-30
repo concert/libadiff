@@ -21,6 +21,18 @@ typedef struct hunk {
     view b;
 } hunk;
 
+/** \brief Create a new hunk as described and append it to the tail of the given hunk list (if any)
+ * \param[out] head The head of the linked list to which to append the new hunk
+ * \param[in] tail The tail of the linked list to which to append the new hunk
+ * \param[in] a_start The start index of the new hunk's 'a' view
+ * \param[in] a_end The end index of the new hunk's 'a' view
+ * \param[in] b_start The start index of the new hunk's 'b' view
+ * \param[in] b_end The end index of the new hunk's 'b' view
+ */
+void append_hunk(
+        hunk ** const head, hunk ** const tail, unsigned const a_start,
+        unsigned const a_end, unsigned const b_start, unsigned const b_end);
+
 /** \brief Free a linked list of hunks.
  * \param[inout] head the head of the list to free.
  */
