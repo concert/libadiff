@@ -78,6 +78,7 @@ stamp-h1
 
 # Build artifacts
 diff_frames
+patch_frames
 **/.dirstamp
 unittest_rabin
 unittest_bdiff
