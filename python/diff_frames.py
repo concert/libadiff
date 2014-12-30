@@ -20,8 +20,9 @@ class DiffApp:
         self._psf_b = None
 
         self._loop = loop or asyncio.get_event_loop()
-        self.terminal = Terminal()
-        self.keyboard = Keyboard()
+        self._terminal = Terminal()
+        self._loop.add_reader(self._terminal.infile, self._handle_input)
+        self._keyboard = Keyboard()
         self.bindings = {}
 
     @asyncio.coroutine
@@ -30,6 +31,16 @@ class DiffApp:
         self._psf_b = pysndfile.PySndfile(self.filename_b)
         result = yield from self._do_diff()
         print(result, self._psf_a.frames(), self._psf_b.frames())
+        with self._terminal.unbuffered_input(), (
+                self._terminal.nonblocking_input()), (
+                self._terminal.hidden_cursor()):
+            while True:
+                yield from asyncio.sleep(1)
+
+    def _handle_input(self):
+        key = self._keyboard[self._terminal.infile.read()]
+        action = self.bindings.get(key, lambda: print(key))
+        action()
 
     @asyncio.coroutine
     def _do_diff(self):
