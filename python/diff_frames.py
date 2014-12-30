@@ -4,6 +4,8 @@ import argh
 import asyncio
 import subprocess
 
+import pysndfile
+
 from terminal import Terminal, Keyboard
 
 bdiff_frames_path = os.path.join(
@@ -11,20 +13,23 @@ bdiff_frames_path = os.path.join(
 
 
 class DiffApp:
-    def __init__(self, filename_a, filename_b):
+    def __init__(self, filename_a, filename_b, loop=None):
         self.filename_a = filename_a
         self.filename_b = filename_b
         self._psf_a = None
         self._psf_b = None
 
+        self._loop = loop or asyncio.get_event_loop()
         self.terminal = Terminal()
         self.keyboard = Keyboard()
         self.bindings = {}
 
     @asyncio.coroutine
     def __call__(self):
+        self._psf_a = pysndfile.PySndfile(self.filename_a)
+        self._psf_b = pysndfile.PySndfile(self.filename_b)
         result = yield from self._do_diff()
-        return result
+        print(result, self._psf_a.frames(), self._psf_b.frames())
 
     @asyncio.coroutine
     def _do_diff(self):
@@ -44,9 +49,7 @@ def diff(filename_a, filename_b):
     '''
     loop = asyncio.get_event_loop()
     app = DiffApp(filename_a, filename_b)
-    t = asyncio.Task(app())
-    loop.run_until_complete(t)
-    print(t.result())
+    loop.run_until_complete(app())
     loop.close()
 
 argh.dispatch_command(diff)
