@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+import sys
 import argh
 import asyncio
 import subprocess
@@ -60,7 +61,11 @@ def diff(filename_a, filename_b):
     '''
     loop = asyncio.get_event_loop()
     app = DiffApp(filename_a, filename_b)
-    loop.run_until_complete(app())
-    loop.close()
+    try:
+        loop.run_until_complete(app())
+    except KeyboardInterrupt:
+        sys.exit()
+    finally:
+        loop.close()
 
 argh.dispatch_command(diff)
