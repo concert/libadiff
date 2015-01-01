@@ -39,7 +39,7 @@ class DiffApp:
 
     def _handle_input(self):
         key = self._keyboard[self._terminal.infile.read()]
-        action = self.bindings.get(key, lambda: print(key))
+        action = self.bindings.get(key, lambda: None)
         action()
 
     @asyncio.coroutine
