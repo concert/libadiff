@@ -25,6 +25,8 @@ class DiffApp:
 
         self._loop = loop or asyncio.get_event_loop()
         self._terminal = Terminal()
+        self._common_fmt = self._terminal.yellow
+        self._insertion_fmt = self._terminal.green
         self._loop.add_reader(self._terminal.infile, self._handle_input)
         self._keyboard = Keyboard()
         self.bindings = {}
@@ -85,8 +87,7 @@ class DiffApp:
             b_offset += hunk.end_b - hunk.start_b
         return tuple(result), a_offset, b_offset
 
-    @staticmethod
-    def _make_diff_line(diff, tot_frames, width, is_b=False):
+    def _make_diff_line(self, diff, tot_frames, width, is_b=False):
         diff_line = ['-'] * width
         chars_per_frame = width / tot_frames
         def to_chars(frames):
@@ -102,9 +103,10 @@ class DiffApp:
                 start_idx = to_chars(hunk.start_a)
             insertion_chars = int((insertion_frames / hunk_frames) * hunk_chars)
             insertion_str = '+' * insertion_chars
-            insertion_str = insertion_str.ljust(hunk_chars)
-            diff_line[start_idx:start_idx+len(insertion_str)] = insertion_str
-        return ''.join(diff_line)
+            insertion_str = self._insertion_fmt + insertion_str.ljust(
+                hunk_chars) + self._common_fmt
+            diff_line[start_idx:start_idx + hunk_chars] = insertion_str
+        return self._common_fmt + ''.join(diff_line)
 
     def _draw_lines(self, lines):
         print('\n'.join(lines), end='')
