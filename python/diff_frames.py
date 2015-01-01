@@ -86,26 +86,24 @@ class DiffApp:
         return tuple(result), a_offset, b_offset
 
     @staticmethod
-    def _make_diff_line(diff, tot_frames, term_width, is_b=False):
-        diff_line = []
-        chars_per_frame = term_width / tot_frames
-        last_end = 0
+    def _make_diff_line(diff, tot_frames, width, is_b=False):
+        diff_line = ['-'] * width
+        chars_per_frame = width / tot_frames
+        def to_chars(frames):
+            return int(chars_per_frame * frames)
         for hunk in diff:
-            diff_line.append(
-                '-' * int((hunk.start_a - last_end) * chars_per_frame))
-            last_end = max(hunk.end_a, hunk.end_b)
-
-            hunk_frames = last_end - hunk.start_a
-            hunk_chars = int(chars_per_frame * hunk_frames)
+            hunk_frames = max(hunk.end_a, hunk.end_b) - hunk.start_a
+            hunk_chars = to_chars(hunk_frames)
             if is_b:
                 insertion_frames = hunk.end_b - hunk.start_b
+                start_idx = to_chars(hunk.start_b)
             else:
                 insertion_frames = hunk.end_a - hunk.start_a
+                start_idx = to_chars(hunk.start_a)
             insertion_chars = int((insertion_frames / hunk_frames) * hunk_chars)
             insertion_str = '+' * insertion_chars
-            diff_line.append(insertion_str.ljust(hunk_chars))
-        diff_line.append(
-            '-' * int((tot_frames - last_end) * chars_per_frame))
+            insertion_str = insertion_str.ljust(hunk_chars)
+            diff_line[start_idx:start_idx+len(insertion_str)] = insertion_str
         return ''.join(diff_line)
 
     def _draw_lines(self, lines):
