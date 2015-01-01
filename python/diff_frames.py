@@ -15,11 +15,26 @@ bdiff_frames_path = os.path.join(
 
 Hunk = namedtuple('Hunk', ('start_a', 'end_a', 'start_b', 'end_b'))
 
+def duration(sndfile):
+    return sndfile.frames() / sndfile.samplerate()
+
+
+def fmt_seconds(t):
+    hours, remainder = divmod(t, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    if not hours:
+        if not minutes:
+            return '{:.2f}'.format(seconds)
+        return '{:.0f}:{:.1f}'.format(minutes, seconds)
+    return '{:.0f}:{:.0f}:{.0f}'.format(hours, minutes, seconds)
+
 
 class DiffApp:
     def __init__(self, filename_a, filename_b, loop=None):
         self.filename_a = filename_a
         self.filename_b = filename_b
+        self._psf_a = None
+        self._psf_b = None
         self._diff = None
         self._len = None
 
@@ -35,11 +50,11 @@ class DiffApp:
     def __call__(self):
         diff = yield from self._do_diff()
         self._diff, a_offset, b_offset = self._process_diff(diff)
-        psf_a = pysndfile.PySndfile(self.filename_a)
-        psf_b = pysndfile.PySndfile(self.filename_b)
+        self._psf_a = pysndfile.PySndfile(self.filename_a)
+        self._psf_b = pysndfile.PySndfile(self.filename_b)
         self._len = max(
-            psf_a.frames() + b_offset,
-            psf_b.frames() + a_offset)
+            self._psf_a.frames() + b_offset,
+            self._psf_b.frames() + a_offset)
         with self._terminal.unbuffered_input(), (
                 self._terminal.nonblocking_input()), (
                 self._terminal.hidden_cursor()):
@@ -106,7 +121,7 @@ class DiffApp:
             insertion_str = self._insertion_fmt + insertion_str.ljust(
                 hunk_chars) + self._common_fmt
             diff_line[start_idx:start_idx + hunk_chars] = insertion_str
-        return self._common_fmt + ''.join(diff_line)
+        return self._common_fmt(''.join(diff_line))
 
     def _draw_lines(self, lines):
         print('\n'.join(lines), end='')
@@ -114,11 +129,18 @@ class DiffApp:
         print(self._terminal.move_x(1))
 
     def _draw(self):
-        if self._diff:
-            print(self._make_diff_line(
-                self._diff, self._len, self._terminal.width))
-            print(self._make_diff_line(
-                self._diff, self._len, self._terminal.width, is_b=True))
+        duration_a = fmt_seconds(duration(self._psf_a))
+        duration_b = fmt_seconds(duration(self._psf_b))
+        duration_width = max(len(duration_a), len(duration_b))
+        diff_line_width = self._terminal.width - duration_width - 1
+        lines = [
+            self._make_diff_line(
+                self._diff, self._len, diff_line_width) + ' ' + duration_a,
+            self._make_diff_line(
+                self._diff, self._len, diff_line_width, is_b=True) + ' ' +
+            duration_b
+        ]
+        self._draw_lines(lines)
 
 
 def diff(filename_a, filename_b):
