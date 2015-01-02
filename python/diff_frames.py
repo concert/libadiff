@@ -31,7 +31,7 @@ def fmt_seconds(t):
 
 
 class DiffApp:
-    def __init__(self, filename_a, filename_b, loop=None):
+    def __init__(self, filename_a, filename_b):
         self.filename_a = filename_a
         self.filename_b = filename_b
         self._psf_a = None
@@ -39,7 +39,7 @@ class DiffApp:
         self._diff = None
         self._len = None
 
-        self._loop = loop or asyncio.get_event_loop()
+        self._loop = asyncio.get_event_loop()
         self._terminal = LinePrintingTerminal()
         self._common_fmt = self._terminal.yellow
         self._insertion_fmt = self._terminal.green
@@ -47,24 +47,28 @@ class DiffApp:
         self._keyboard = Keyboard()
         self.bindings = {}
 
-    @asyncio.coroutine
     def __call__(self):
-        diff = yield from self._do_diff()
-        self._diff, a_offset, b_offset = self._process_diff(diff)
         self._psf_a = pysndfile.PySndfile(self.filename_a)
         self._psf_b = pysndfile.PySndfile(self.filename_b)
-        self._len = max(
-            self._psf_a.frames() + b_offset,
-            self._psf_b.frames() + a_offset)
         with self._terminal.unbuffered_input(), (
                 self._terminal.nonblocking_input()), (
                 self._terminal.hidden_cursor()):
-            self._draw()
             try:
-                while True:
-                    yield from asyncio.sleep(1)
+                self._loop.run_until_complete(self._run())
             finally:
+                self._loop.close()
                 print('\n', end='')  # Yuck :-(
+
+    @asyncio.coroutine
+    def _run(self):
+        diff = yield from self._do_diff()
+        self._diff, a_offset, b_offset = self._process_diff(diff)
+        self._len = max(
+            self._psf_a.frames() + b_offset,
+            self._psf_b.frames() + a_offset)
+        self._draw()
+        while True:
+            yield from asyncio.sleep(1)
 
     def _handle_input(self):
         key = self._keyboard[self._terminal.infile.read()]
@@ -148,13 +152,10 @@ def diff(filename_a, filename_b):
     '''Diffs the two given audiofiles and throws away the return value so
     blasted argh doesn't try to print the whole bally lot!
     '''
-    loop = asyncio.get_event_loop()
     app = DiffApp(filename_a, filename_b)
     try:
-        loop.run_until_complete(app())
+        app()
     except KeyboardInterrupt:
         sys.exit()
-    finally:
-        loop.close()
 
 argh.dispatch_command(diff)
