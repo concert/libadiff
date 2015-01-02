@@ -17,6 +17,11 @@ Hunk = namedtuple('Hunk', ('start_a', 'end_a', 'start_b', 'end_b'))
 
 
 def duration(sndfile):
+    '''
+    :parameter sndfile: The :class:`PySndFile` instance from which to calculate
+        the duration.
+    :returns float: the duration of the given audio file, in seconds.
+    '''
     return sndfile.frames() / sndfile.samplerate()
 
 
