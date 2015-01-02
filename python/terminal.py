@@ -39,43 +39,7 @@ def _override_sugar(func):
 
 
 class Terminal(blessings.Terminal):
-    '''Junction is loosely based on the :mod:`blessings` module, which provides
-    easy, Pythonic access to escape squences for terminal colouring, styling
-    and positioning. Central to :mod:`blessings` is its
-    :class:`blessings.Terminal` class, which is the hook for :mod:`blessings`'
-    users to request escape sequences. Junction's :class:`Terminal` class
-    extends :class:`blessings.Terminal` to add some features requisite for
-    handling some more 'application level' situations.
-
-    * Firstly, :class:`jcn.Terminal` overrides some of :mod:`blessings` normal
-      methods to track some state of the terminal it is representing. This is
-      important for handling suspension of the application via SIGTSTP
-      correctly.  (In that case we need to restore the terminal's original
-      behaviours when we are suspended and restore the application's desired
-      behaviours when resumed.)
-
-    * Secondly, we provide some methods to change the behaviour of
-      :attr:`sys.stdin`, which :mod:`blessings` never needed to address, so
-      that Junction applications can gain access to and handle user keystrokes
-      responsively.
-
-    * Finally, because Junction is all about drawing blocks of UI to the
-      screen, rather than whole lines, we provide a simple inferface for doing
-      that.
-
-    You could create :class:`Terminal` instance manually, and use it
-    independently or pass it to your applications :class:`Root` instance if you
-    want to override some default behaviours, but in the *vast majority* of
-    cases you just need to know that this is where :mod:`jcn`'s link to
-    :mod:`blessings` lies, and the things this class takes care of so that you
-    don't have to worry about them. To gain access to terminal formatting in
-    your application, you instead use :attr:`Root.format`.
-    '''
     def __init__(self, *args, infile=None, handle_signals=True, **kwargs):
-        '''
-        :parameter infile:
-        :paremeter handle_signals:
-        '''
         super().__init__(*args, **kwargs)
         self.infile = infile or sys.stdin
         if handle_signals:
@@ -209,34 +173,22 @@ class Terminal(blessings.Terminal):
         else:
             yield
 
-    def draw_lines(self, lines, x=0, y=0):
-        '''Write a collection of lines to the terminal stream at the given
-        location. The lines are written as one 'block' (i.e. each new line
-        starts one line down from the previous, but each starts *at the given x
-        coordinate*).
 
-        :parameter lines: An iterable of strings that should be written to the
-            terminal. They need not all be the same length, but should ideally
-            not extend beyond the right hand side of the terminal screen,
-            otherwise strange linebreaking/overwriting may occur.
-        :parameter x: the column of the terminal display at which the block of
-            lines begins.
-        :parameter y: the row of the terminal display at which the block of
-            lines begins (from top).
-        '''
-        for y, line in enumerate(lines, start=y):
-            self.stream.write(self.move(y, x))
-            self.stream.write(line)
-
-_terminal = Terminal()
-
-
-def get_terminal():
-    '''Explain why we have a :func:`get_terminal` - i.e. it's like the
-    :func:`asyncio.get_event_loop` in that it will always return us a singleton
-    instance. (If indeed that's something we actually care about any more?)
+class LinePrintingTerminal(Terminal):
+    '''Allows multiple lines to be printed to the terminal and then overwritten
+    simply with another set of lines.
     '''
-    return _terminal
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._lines_drawn = 0
+
+    def print_lines(self, lines):
+        for _ in range(self._lines_drawn - 1):
+            self.stream.write(self.move_up)
+        # Tmux bug? means move_x could be '' in error:
+        self.stream.write(self.move_x(1) or '\x1b[1G')
+        self.stream.write('\n'.join(lines))
+        self._lines_drawn = len(lines)
 
 
 class Keyboard:

@@ -8,12 +8,13 @@ from collections import namedtuple
 
 import pysndfile
 
-from terminal import Terminal, Keyboard
+from terminal import LinePrintingTerminal, Keyboard
 
 bdiff_frames_path = os.path.join(
     os.path.dirname(__file__), os.pardir, 'diff_frames')
 
 Hunk = namedtuple('Hunk', ('start_a', 'end_a', 'start_b', 'end_b'))
+
 
 def duration(sndfile):
     return sndfile.frames() / sndfile.samplerate()
@@ -39,7 +40,7 @@ class DiffApp:
         self._len = None
 
         self._loop = loop or asyncio.get_event_loop()
-        self._terminal = Terminal()
+        self._terminal = LinePrintingTerminal()
         self._common_fmt = self._terminal.yellow
         self._insertion_fmt = self._terminal.green
         self._loop.add_reader(self._terminal.infile, self._handle_input)
@@ -59,8 +60,11 @@ class DiffApp:
                 self._terminal.nonblocking_input()), (
                 self._terminal.hidden_cursor()):
             self._draw()
-            while True:
-                yield from asyncio.sleep(1)
+            try:
+                while True:
+                    yield from asyncio.sleep(1)
+            finally:
+                print('\n', end='')  # Yuck :-(
 
     def _handle_input(self):
         key = self._keyboard[self._terminal.infile.read()]
@@ -125,11 +129,6 @@ class DiffApp:
             diff_line[end_idx] = diff_line[end_idx - 1] + self._common_fmt
         return self._common_fmt(''.join(diff_line))
 
-    def _draw_lines(self, lines):
-        print('\n'.join(lines), end='')
-        print(self._terminal.move_up * (len(lines) + 1)) # Wha? Why + 1?!
-        print(self._terminal.move_x(1))
-
     def _draw(self):
         duration_a = fmt_seconds(duration(self._psf_a))
         duration_b = fmt_seconds(duration(self._psf_b))
@@ -142,7 +141,7 @@ class DiffApp:
                 self._diff, self._len, diff_line_width, is_b=True) + ' ' +
             duration_b
         ]
-        self._draw_lines(lines)
+        self._terminal.print_lines(lines)
 
 
 def diff(filename_a, filename_b):
