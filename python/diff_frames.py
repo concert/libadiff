@@ -118,9 +118,11 @@ class DiffApp:
                 start_idx = to_chars(hunk.start_a)
             insertion_chars = int((insertion_frames / hunk_frames) * hunk_chars)
             insertion_str = '+' * insertion_chars
-            insertion_str = self._insertion_fmt + insertion_str.ljust(
-                hunk_chars) + self._common_fmt
-            diff_line[start_idx:start_idx + hunk_chars] = insertion_str
+            insertion_str = insertion_str.ljust(hunk_chars)
+            end_idx = start_idx + hunk_chars
+            diff_line[start_idx:end_idx] = insertion_str
+            diff_line[start_idx] = self._insertion_fmt + diff_line[start_idx]
+            diff_line[end_idx] = diff_line[end_idx - 1] + self._common_fmt
         return self._common_fmt(''.join(diff_line))
 
     def _draw_lines(self, lines):
