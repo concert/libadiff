@@ -29,6 +29,7 @@ unittest_bdiff_SOURCES = \
 	tests/unittest_chunk.c \
 	src/chunk.c \
 	src/rabin.c \
+	src/bdiff.c \
 	tests/unittest_bdiff.c
 unittest_bdiff_LDADD=$(GLIB_LIBS)
 
