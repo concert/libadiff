@@ -37,7 +37,7 @@ static adiff_return_code info_cmp(const lsf_wrapped a, const lsf_wrapped b) {
     return ADIFF_OK;
 }
 
-static unsigned int_fetcher(void * source, unsigned n_items, char * buffer) {
+static unsigned short_fetcher(void * source, unsigned n_items, char * buffer) {
     lsf_wrapped const * const src = source;
     return sf_readf_short(src->file, (short *) buffer, n_items);
 }
@@ -47,24 +47,32 @@ static unsigned float_fetcher(void * source, unsigned n_items, char * buffer) {
     return sf_readf_float(src->file, (float *) buffer, n_items);
 }
 
+typedef struct {
+    data_fetcher const fetcher;
+    const size_t sample_size;
+} fetcher_info;
+
+static fetcher_info get_fetcher(lsf_wrapped const f) {
+    if (
+            ((f.info.format & SF_FORMAT_SUBMASK) == SF_FORMAT_FLOAT) |
+            ((f.info.format & SF_FORMAT_SUBMASK) == SF_FORMAT_DOUBLE)) {
+        return (fetcher_info) {
+            .fetcher = float_fetcher, .sample_size = sizeof(float)};
+    } else {
+        return (fetcher_info) {
+            .fetcher = short_fetcher, .sample_size = sizeof(short)};
+    }
+}
+
 static diff cmp(const lsf_wrapped a, const lsf_wrapped b) {
     adiff_return_code ret_code = info_cmp(a, b);
     if (ret_code == ADIFF_OK) {
-        if (
-                ((a.info.format & SF_FORMAT_SUBMASK) == SF_FORMAT_FLOAT) |
-                ((a.info.format & SF_FORMAT_SUBMASK) == SF_FORMAT_DOUBLE)) {
-            return (diff) {
-                .code = ret_code,
-                .hunks = bdiff(
-                    sizeof(float) * a.info.channels, float_fetcher,
-                    (void *) &a, (void *) &b)};
-        } else {
-            return (diff) {
-                .code = ret_code,
-                .hunks = bdiff(
-                    sizeof(short) * a.info.channels, int_fetcher,
-                    (void *) &a, (void *) &b)};
-        }
+        fetcher_info const fi = get_fetcher(a);
+        return (diff) {
+            .code = ret_code,
+            .hunks = bdiff(
+                fi.sample_size * a.info.channels, fi.fetcher,
+                (void *) &a, (void *) &b)};
     }
     return (diff) {.code = ret_code};
 }
