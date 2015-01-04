@@ -38,13 +38,11 @@ static adiff_return_code info_cmp(const lsf_wrapped a, const lsf_wrapped b) {
 }
 
 static unsigned short_fetcher(void * source, unsigned n_items, char * buffer) {
-    lsf_wrapped const * const src = source;
-    return sf_readf_short(src->file, (short *) buffer, n_items);
+    return sf_readf_short((SNDFILE * const) source, (short *) buffer, n_items);
 }
 
 static unsigned float_fetcher(void * source, unsigned n_items, char * buffer) {
-    lsf_wrapped const * const src = source;
-    return sf_readf_float(src->file, (float *) buffer, n_items);
+    return sf_readf_float((SNDFILE * const) source, (float *) buffer, n_items);
 }
 
 typedef struct {
@@ -72,7 +70,7 @@ static diff cmp(const lsf_wrapped a, const lsf_wrapped b) {
             .code = ret_code,
             .hunks = bdiff(
                 fi.sample_size * a.info.channels, fi.fetcher,
-                (void *) &a, (void *) &b)};
+                (void *) &a.file, (void *) &b.file)};
     }
     return (diff) {.code = ret_code};
 }
