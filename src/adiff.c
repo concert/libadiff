@@ -93,18 +93,51 @@ diff adiff(const_str path_a, const_str path_b) {
     return result;
 }
 
+static unsigned short_etcher(
+        SNDFILE * const src, unsigned const n_items, char const * buffer) {
+    return sf_writef_short(src, (short *) buffer, n_items);
+}
+
+static unsigned float_etcher(
+        SNDFILE * const src, unsigned const n_items,
+        char const * buffer) {
+    return sf_writef_float(src, (float *) buffer, n_items);
+}
+
+typedef unsigned (*data_etcher)(
+    SNDFILE * const, unsigned const n_items, char const * buffer);
+
+typedef struct {
+    data_etcher const etcher;
+    size_t const sample_size;
+} etcher_info;
+
+static etcher_info get_etcher(lsf_wrapped const f) {
+    if (
+            ((f.info.format & SF_FORMAT_SUBMASK) == SF_FORMAT_FLOAT) |
+            ((f.info.format & SF_FORMAT_SUBMASK) == SF_FORMAT_DOUBLE)) {
+        return (etcher_info) {
+            .etcher = float_etcher, .sample_size = sizeof(float)};
+    } else {
+        return (etcher_info) {
+            .etcher = short_etcher, .sample_size = sizeof(short)};
+    }
+}
+
 static void copy_data(
         lsf_wrapped const in, lsf_wrapped const out, unsigned start,
         unsigned end) {
     end--;
     sf_seek(in.file, start, SEEK_SET);  // Should be error checked (-1 rval)
-    short buffer[4096];
-    unsigned n_items = 4096 / in.info.channels;
+    fetcher_info const fi = get_fetcher(in);
+    etcher_info const ei = get_etcher(in);
+    char buffer[8192];
+    unsigned n_items = 8192 / ei.sample_size / in.info.channels;
     while (start < end) {
         if ((end - start) < n_items)
             n_items = (end - start) + 1;
-        const unsigned n_read = sf_readf_short(in.file, buffer, n_items);
-        sf_writef_short(out.file, buffer, n_read);  // Possible write failure
+        const unsigned n_read = fi.fetcher(in.file, n_items, buffer);
+        ei.etcher(out.file, n_read, buffer);  // Possible write failure
         start += n_read;
     }
 }
