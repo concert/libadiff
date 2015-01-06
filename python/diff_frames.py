@@ -25,14 +25,57 @@ def duration(sndfile):
     return sndfile.frames() / sndfile.samplerate()
 
 
-def fmt_seconds(t):
-    hours, remainder = divmod(t, 3600)
-    minutes, seconds = divmod(remainder, 60)
-    if not hours:
-        if not minutes:
-            return '{:.2f}'.format(seconds)
-        return '{:.0f}:{:.1f}'.format(minutes, seconds)
-    return '{:.0f}:{:.0f}:{.0f}'.format(hours, minutes, seconds)
+class Time:
+    '''Formats the given time in seconds to an appropriate prescision exlcuding
+    leading zero components. Edge cases around overflowing make this
+    non-trivial.
+    '''
+
+    __slots__ = 'hours', 'minutes', 'seconds'
+
+    def __init__(self, seconds):
+        self.hours, self.minutes, self.seconds = self._round_hms(
+            *self._split(seconds))
+
+    @staticmethod
+    def _split(seconds):
+        hours, remainder = divmod(seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        return hours, minutes, seconds
+
+    @staticmethod
+    def _round_pair(big, small, precision):
+        if round(small, precision) == 60:
+            big += 1
+            small = 0.0
+        return big, small
+
+    @staticmethod
+    def _select(hours, minutes, seconds, a, b, c):
+        if not hours:
+            if not minutes:
+                return c
+            return b
+        return a
+
+    def _round_hms(self, hours, minutes, seconds):
+        second_prec = self._select(hours, minutes, seconds, 0, 1, 2)
+        minutes, seconds = self._round_pair(minutes, seconds, second_prec)
+        hours, minutes = self._round_pair(hours, minutes, 0)
+        return hours, minutes, seconds
+
+    def __str__(self):
+        fmt_str = self._select(
+            self.hours, self.minutes, self.seconds,
+            '{hours:.0f}:{minutes:02.0f}:{seconds:02.0f}',
+            '{minutes:.0f}:{seconds:04.1f}',
+            '{seconds:.2f}')
+        return fmt_str.format(
+            hours=self.hours, minutes=self.minutes, seconds=self.seconds)
+
+
+def fmt_seconds(seconds):
+    return str(Time(seconds))
 
 
 class DiffApp:
@@ -163,4 +206,5 @@ def diff(filename_a, filename_b):
     except KeyboardInterrupt:
         sys.exit()
 
-argh.dispatch_command(diff)
+if __name__ == '__main__':
+    argh.dispatch_command(diff)
