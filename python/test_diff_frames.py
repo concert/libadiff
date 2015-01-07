@@ -42,3 +42,30 @@ class TestDiffFrames(TestCase):
             self.app._process_diff(self.unprocessed_diff),
             (self.processed_diff, 4000, 5000))
 
+    def _diff_line_helper(self, app, expected_a, expected_b):
+        result = app._make_diff_line(self.processed_diff, 12000, 50)
+        self.assertEqual(repr(result), repr(expected_a))
+        result = app._make_diff_line(
+            self.processed_diff, 12000, 50, is_b=True)
+        self.assertEqual(repr(result), repr(expected_b))
+
+    def test_make_diff_line_plain(self):
+        app = DiffApp(
+            'some_a', 'some_b',
+            terminal=LinePrintingTerminal(force_styling=None))
+        self._diff_line_helper(
+            app,
+            expected_a='     -------++++++++++++     ----------------+++++',
+            expected_b='+++++-------+++++++++++++++++----------------     ')
+
+    def test_make_diff_line_colour(self):
+        ins = self.app._insertion_fmt
+        com = self.app._common_fmt
+        self._diff_line_helper(
+            self.app,
+            expected_a=com(
+                '{ins}     {com}-------{ins}++++++++++++     {com}-------------'
+                '---{ins}+++++{com}').format(ins=ins, com=com),
+            expected_b=com(
+                '{ins}+++++{com}-------{ins}+++++++++++++++++{com}-------------'
+                '---{ins}     {com}').format(ins=ins, com=com))
