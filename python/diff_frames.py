@@ -79,7 +79,7 @@ def fmt_seconds(seconds):
 
 
 class DiffApp:
-    def __init__(self, filename_a, filename_b):
+    def __init__(self, filename_a, filename_b, terminal=None):
         self.filename_a = filename_a
         self.filename_b = filename_b
         self._psf_a = None
@@ -88,7 +88,7 @@ class DiffApp:
         self._len = None
 
         self._loop = asyncio.get_event_loop()
-        self._terminal = LinePrintingTerminal()
+        self._terminal = terminal or LinePrintingTerminal()
         self._common_fmt = self._terminal.yellow
         self._insertion_fmt = self._terminal.green
         self._loop.add_reader(self._terminal.infile, self._handle_input)
@@ -146,7 +146,6 @@ class DiffApp:
         '''
         a_offset = 0
         b_offset = 0
-        # FIXME: is there a way to do this without an intermediate list?
         result = []
         for hunk in diff:
             result.append(Hunk(
