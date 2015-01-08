@@ -43,10 +43,11 @@ class TestDiffFrames(TestCase):
             (self.processed_diff, 4000, 5000))
 
     def _diff_line_helper(self, app, expected_a, expected_b):
-        result = app._make_diff_line(self.processed_diff, 12000, 50)
+        app._len = 12000
+        result = app._make_diff_line(self.processed_diff, 50)
         self.assertEqual(repr(result), repr(expected_a))
         result = app._make_diff_line(
-            self.processed_diff, 12000, 50, is_b=True)
+            self.processed_diff, 50, is_b=True)
         self.assertEqual(repr(result), repr(expected_b))
 
     def test_make_diff_line_plain(self):

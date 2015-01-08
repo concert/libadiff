@@ -87,6 +87,8 @@ class DiffApp:
         self._diff = None
         self._len = None
 
+        self._zoom = 1.0
+
         self._loop = asyncio.get_event_loop()
         self._terminal = terminal or LinePrintingTerminal()
         self._common_fmt = self._terminal.yellow
@@ -157,20 +159,28 @@ class DiffApp:
             b_offset += hunk.end_b - hunk.start_b
         return tuple(result), a_offset, b_offset
 
-    def _make_diff_line(self, diff, tot_frames, width, is_b=False):
-        diff_line = ['-'] * width
-        chars_per_frame = width / tot_frames
-        def to_chars(frames):
+    def _get_transform(self, width):
+        '''Returns a function that transforms a point in the space of the
+        "virtual" diff space, given in frames, into a x-coordintate on the
+        terminal, taking into account various application state parameters.
+        '''
+        chars_per_frame = self._zoom * width / self._len
+        def transform(frames):
             return int(chars_per_frame * frames)
+        return transform
+
+    def _make_diff_line(self, diff, width, is_b=False):
+        diff_line = ['-'] * width
+        transform = self._get_transform(width)
         for hunk in diff:
             hunk_frames = max(hunk.end_a, hunk.end_b) - hunk.start_a
-            hunk_chars = to_chars(hunk_frames)
+            hunk_chars = transform(hunk_frames)
             if is_b:
                 insertion_frames = hunk.end_b - hunk.start_b
-                start_idx = to_chars(hunk.start_b)
+                start_idx = transform(hunk.start_b)
             else:
                 insertion_frames = hunk.end_a - hunk.start_a
-                start_idx = to_chars(hunk.start_a)
+                start_idx = transform(hunk.start_a)
             insertion_chars = int((insertion_frames / hunk_frames) * hunk_chars)
             insertion_str = '+' * insertion_chars
             insertion_str = insertion_str.ljust(hunk_chars)
@@ -187,9 +197,9 @@ class DiffApp:
         diff_line_width = self._terminal.width - duration_width - 1
         lines = [
             self._make_diff_line(
-                self._diff, self._len, diff_line_width) + ' ' + duration_a,
+                self._diff, diff_line_width) + ' ' + duration_a,
             self._make_diff_line(
-                self._diff, self._len, diff_line_width, is_b=True) + ' ' +
+                self._diff, diff_line_width, is_b=True) + ' ' +
             duration_b
         ]
         self._terminal.print_lines(lines)
