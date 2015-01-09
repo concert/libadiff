@@ -108,7 +108,11 @@ class DiffApp:
         self._insertion_fmt = self._terminal.green
         self._loop.add_reader(self._terminal.infile, self._handle_input)
         self._keyboard = Keyboard()
-        self.bindings = {}
+        self.bindings = {
+            '+': self._zoom_in,
+            '=': self._zoom_in,
+            '-': self._zoom_out,
+        }
 
     def __call__(self):
         self._psf_a = pysndfile.PySndfile(self.filename_a)
@@ -191,7 +195,7 @@ class DiffApp:
             dl_start_idx = transform(hunk.start_a)  # Identical for .start_b
             dl_end_idx = dl_start_idx + hunk_num_chars
 
-            # hunk is entirely out of viewport:
+            # hunk is entirely out of viewport, so don't bother drawing
             if dl_end_idx < 0:
                 continue
             elif dl_start_idx > len(diff_line):
@@ -223,6 +227,12 @@ class DiffApp:
             duration_b
         ]
         self._terminal.print_lines(lines)
+
+    def _zoom_in(self):
+        self._zoom *= 1.1
+
+    def _zoom_out(self):
+        self._zoom = max(1.0, self._zoom / 1.1)
 
 
 def diff(filename_a, filename_b):

@@ -8,7 +8,9 @@ from diff_frames import fmt_seconds, duration, DiffApp, Hunk, overlay_lists
 
 class TestDiffFrames(TestCase):
     def setUp(self):
-        self.app = DiffApp('some_a', 'some_b')
+        self.app = DiffApp(
+            'some_a', 'some_b',
+            terminal=LinePrintingTerminal(force_styling=None))
 
     def test_duration(self):
         mock_snd_file = Mock(spec=PySndfile)
@@ -50,6 +52,8 @@ class TestDiffFrames(TestCase):
         Hunk(3000, 6000, 3000, 7000),
         Hunk(11000, 12000, 11000, 11000),
     )
+    diff_line_a = '    --------++++++++++++    ----------------++++'
+    diff_line_b = '++++--------++++++++++++++++----------------    '
 
     def test_process_diff(self):
         self.assertEqual(
@@ -65,22 +69,40 @@ class TestDiffFrames(TestCase):
         self.assertEqual(repr(result), repr(expected_b))
 
     def test_make_diff_line_plain(self):
-        app = DiffApp(
-            'some_a', 'some_b',
-            terminal=LinePrintingTerminal(force_styling=None))
         self._diff_line_helper(
-            app,
-            expected_a='    --------++++++++++++    ----------------++++',
-            expected_b='++++--------++++++++++++++++----------------    ')
+            self.app, expected_a=self.diff_line_a, expected_b=self.diff_line_b)
 
     def test_make_diff_line_colour(self):
-        ins = self.app._insertion_fmt
-        com = self.app._common_fmt
+        app = DiffApp('some_a', 'some_b')
+        ins = app._insertion_fmt
+        com = app._common_fmt
         self._diff_line_helper(
-            self.app,
+            app,
             expected_a=com(
                 '{ins}    {com}--------{ins}++++++++++++    {com}-------------'
                 '---{ins}++++{com}').format(ins=ins, com=com),
             expected_b=com(
                 '{ins}++++{com}--------{ins}++++++++++++++++{com}-------------'
                 '---{ins}    {com}').format(ins=ins, com=com))
+
+    def multiply_up(self, string, multiplier):
+        return ''.join(c * multiplier for c in string)
+
+    def test_make_diff_line_zoom(self):
+        self.app._zoom = 2.0
+        self._diff_line_helper(
+            self.app,
+            expected_a=self.multiply_up(self.diff_line_a, 2)[:48],
+            expected_b=self.multiply_up(self.diff_line_b, 2)[:48])
+
+    def test_zoom(self):
+        self.app._zoom_in()
+        self.assertEqual(self.app._zoom, 1.1)
+        self.app._zoom_in()
+        self.assertEqual(self.app._zoom, 1.1 ** 2)
+        self.app._zoom_out()
+        self.assertEqual(self.app._zoom, 1.1)
+        self.app._zoom_out()
+        self.assertEqual(self.app._zoom, 1.0)
+        self.app._zoom_out()
+        self.assertEqual(self.app._zoom, 1.0)
