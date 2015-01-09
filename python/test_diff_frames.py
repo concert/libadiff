@@ -3,7 +3,19 @@ from mock import Mock
 
 from pysndfile import PySndfile
 from terminal import LinePrintingTerminal
-from diff_frames import fmt_seconds, duration, DiffApp, Hunk, overlay_lists
+from diff_frames import (
+    fmt_seconds, duration, DiffApp, Hunk, NormalisedHunk, overlay_lists)
+
+
+class TestHunk(TestCase):
+    def test_eq(self):
+        self.assertEqual(Hunk(1, 2, 3, 4), Hunk(1, 2, 3, 4))
+        self.assertNotEqual(Hunk(1, 2, 3, 4), Hunk(5, 6, 7, 8))
+
+
+class TestNormalisedHunk(TestCase):
+    def test_len(self):
+        self.assertEqual(len(NormalisedHunk(1, 5, 1, 10)), 9)
 
 
 class TestDiffFrames(TestCase):
@@ -48,9 +60,9 @@ class TestDiffFrames(TestCase):
     )
 
     processed_diff = (
-        Hunk(0, 0, 0, 1000),
-        Hunk(3000, 6000, 3000, 7000),
-        Hunk(11000, 12000, 11000, 11000),
+        NormalisedHunk(0, 0, 0, 1000),
+        NormalisedHunk(3000, 6000, 3000, 7000),
+        NormalisedHunk(11000, 12000, 11000, 11000),
     )
     diff_line_a = '    --------++++++++++++    ----------------++++'
     diff_line_b = '++++--------++++++++++++++++----------------    '

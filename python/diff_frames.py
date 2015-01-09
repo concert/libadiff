@@ -4,7 +4,6 @@ import sys
 import argh
 import asyncio
 import subprocess
-from collections import namedtuple
 
 import pysndfile
 
@@ -13,7 +12,33 @@ from terminal import LinePrintingTerminal, Keyboard
 bdiff_frames_path = os.path.join(
     os.path.dirname(__file__), os.pardir, 'diff_frames')
 
-Hunk = namedtuple('Hunk', ('start_a', 'end_a', 'start_b', 'end_b'))
+
+class Hunk:
+    __slots__ = 'start_a', 'end_a', 'start_b', 'end_b'
+
+    def __init__(self, start_a, end_a, start_b, end_b):
+        self.start_a = start_a
+        self.end_a = end_a
+        self.start_b = start_b
+        self.end_b = end_b
+
+    def __eq__(self, other):
+        return all(
+            getattr(self, name) == getattr(other, name) for name in
+            self.__slots__)
+
+
+class NormalisedHunk(Hunk):
+    @property
+    def start(self):
+        return self.start_a
+
+    @property
+    def end(self):
+        return max(self.end_a, self.end_b)
+
+    def __len__(self):
+        return self.end - self.start
 
 
 def duration(sndfile):
@@ -167,7 +192,7 @@ class DiffApp:
         b_offset = 0
         result = []
         for hunk in diff:
-            result.append(Hunk(
+            result.append(NormalisedHunk(
                 hunk.start_a + b_offset,
                 hunk.end_a + b_offset,
                 hunk.start_b + a_offset,
@@ -190,9 +215,8 @@ class DiffApp:
         diff_line = ['-'] * width
         transform = self._get_transform(width)
         for hunk in diff:
-            hunk_num_frames = max(hunk.end_a, hunk.end_b) - hunk.start_a
-            hunk_num_chars = transform(hunk_num_frames)
-            dl_start_idx = transform(hunk.start_a)  # Identical for .start_b
+            hunk_num_chars = transform(len(hunk))
+            dl_start_idx = transform(hunk.start)
             dl_end_idx = dl_start_idx + hunk_num_chars
 
             # hunk is entirely out of viewport, so don't bother drawing
@@ -207,7 +231,7 @@ class DiffApp:
                 frames_inserted = hunk.end_a - hunk.start_a
 
             insertion_str = '+' * int(
-                (frames_inserted / hunk_num_frames) * hunk_num_chars)
+                (frames_inserted / len(hunk)) * hunk_num_chars)
             insertion_str = list(insertion_str.ljust(hunk_num_chars))
             insertion_str[0] = self._insertion_fmt + insertion_str[0]
             insertion_str[-1] += self._common_fmt
