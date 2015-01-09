@@ -3,7 +3,7 @@ from mock import Mock
 
 from pysndfile import PySndfile
 from terminal import LinePrintingTerminal
-from diff_frames import fmt_seconds, duration, DiffApp, Hunk
+from diff_frames import fmt_seconds, duration, DiffApp, Hunk, overlay_lists
 
 
 class TestDiffFrames(TestCase):
@@ -24,6 +24,20 @@ class TestDiffFrames(TestCase):
         self.assertEqual(fmt_seconds(3599.99), '1:00:00')
         self.assertEqual(fmt_seconds(3601.5), '1:00:02')
 
+    def test_overlay_lists(self):
+        data = (
+            (0, ('---', '+--', '++-', '+++', '+++')),
+            (1, ('---', '-+-', '-++', '-++', '-++')),
+            (5, ('---', '---', '---', '---', '---')),
+            (-1, ('---', '---', '+--', '++-', '+++')),
+            (-4, ('---', '---', '---', '---', '---')),
+        )
+        for offset, expecteds in data:
+            for i, expected in enumerate(expecteds):
+                base = ['-'] * 3
+                new = ['+'] * i
+                overlay_lists(base, new, offset)
+                self.assertEqual(base, list(expected))
 
     unprocessed_diff = (
         Hunk(0, 0, 0, 1000),
@@ -43,11 +57,11 @@ class TestDiffFrames(TestCase):
             (self.processed_diff, 4000, 5000))
 
     def _diff_line_helper(self, app, expected_a, expected_b):
-        app._len = 12000
-        result = app._make_diff_line(self.processed_diff, 50)
+        app._len = 12000  # each 1000 frames is 4 characters at 48 width
+        result = app._make_diff_line(self.processed_diff, 48)
         self.assertEqual(repr(result), repr(expected_a))
         result = app._make_diff_line(
-            self.processed_diff, 50, is_b=True)
+            self.processed_diff, 48, is_b=True)
         self.assertEqual(repr(result), repr(expected_b))
 
     def test_make_diff_line_plain(self):
@@ -56,8 +70,8 @@ class TestDiffFrames(TestCase):
             terminal=LinePrintingTerminal(force_styling=None))
         self._diff_line_helper(
             app,
-            expected_a='     -------++++++++++++     ----------------+++++',
-            expected_b='+++++-------+++++++++++++++++----------------     ')
+            expected_a='    --------++++++++++++    ----------------++++',
+            expected_b='++++--------++++++++++++++++----------------    ')
 
     def test_make_diff_line_colour(self):
         ins = self.app._insertion_fmt
@@ -65,8 +79,8 @@ class TestDiffFrames(TestCase):
         self._diff_line_helper(
             self.app,
             expected_a=com(
-                '{ins}     {com}-------{ins}++++++++++++     {com}-------------'
-                '---{ins}+++++{com}').format(ins=ins, com=com),
+                '{ins}    {com}--------{ins}++++++++++++    {com}-------------'
+                '---{ins}++++{com}').format(ins=ins, com=com),
             expected_b=com(
-                '{ins}+++++{com}-------{ins}+++++++++++++++++{com}-------------'
-                '---{ins}     {com}').format(ins=ins, com=com))
+                '{ins}++++{com}--------{ins}++++++++++++++++{com}-------------'
+                '---{ins}    {com}').format(ins=ins, com=com))

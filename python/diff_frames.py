@@ -78,6 +78,19 @@ def fmt_seconds(seconds):
     return str(Time(seconds))
 
 
+def overlay_lists(base, new, offset):
+    '''Mutates the given base list by overlaying the new list on top at a given
+    offset.
+    '''
+    if offset + len(new) >= 0:
+        for i in range(len(new)):
+            base_idx = i + offset
+            if 0 <= base_idx < len(base):
+                base[base_idx] = new[i]
+            elif base_idx >= len(base):
+                break
+
+
 class DiffApp:
     def __init__(self, filename_a, filename_b, terminal=None):
         self.filename_a = filename_a
@@ -173,21 +186,28 @@ class DiffApp:
         diff_line = ['-'] * width
         transform = self._get_transform(width)
         for hunk in diff:
-            hunk_frames = max(hunk.end_a, hunk.end_b) - hunk.start_a
-            hunk_chars = transform(hunk_frames)
+            hunk_num_frames = max(hunk.end_a, hunk.end_b) - hunk.start_a
+            hunk_num_chars = transform(hunk_num_frames)
+            dl_start_idx = transform(hunk.start_a)  # Identical for .start_b
+            dl_end_idx = dl_start_idx + hunk_num_chars
+
+            # hunk is entirely out of viewport:
+            if dl_end_idx < 0:
+                continue
+            elif dl_start_idx > len(diff_line):
+                break
+
             if is_b:
-                insertion_frames = hunk.end_b - hunk.start_b
-                start_idx = transform(hunk.start_b)
+                frames_inserted = hunk.end_b - hunk.start_b
             else:
-                insertion_frames = hunk.end_a - hunk.start_a
-                start_idx = transform(hunk.start_a)
-            insertion_chars = int((insertion_frames / hunk_frames) * hunk_chars)
-            insertion_str = '+' * insertion_chars
-            insertion_str = insertion_str.ljust(hunk_chars)
-            end_idx = start_idx + hunk_chars
-            diff_line[start_idx:end_idx] = insertion_str
-            diff_line[start_idx] = self._insertion_fmt + diff_line[start_idx]
-            diff_line[end_idx] = diff_line[end_idx - 1] + self._common_fmt
+                frames_inserted = hunk.end_a - hunk.start_a
+
+            insertion_str = '+' * int(
+                (frames_inserted / hunk_num_frames) * hunk_num_chars)
+            insertion_str = list(insertion_str.ljust(hunk_num_chars))
+            insertion_str[0] = self._insertion_fmt + insertion_str[0]
+            insertion_str[-1] += self._common_fmt
+            overlay_lists(diff_line, insertion_str, dl_start_idx)
         return self._common_fmt(''.join(diff_line))
 
     def _draw(self):
