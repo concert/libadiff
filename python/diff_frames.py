@@ -205,7 +205,7 @@ class DiffApp:
 
     @property
     def _end_cue_mark(self):
-        if self._active_cue == 'stop':
+        if self._active_cue == 'end':
             return self._terminal.reverse(']')
         else:
             return ']'
@@ -267,13 +267,14 @@ class DiffApp:
         self._select_cue_helper('start')
 
     def _select_end_cue(self):
-        self._select_cue_helper('stop')
+        self._select_cue_helper('end')
 
     def _move_active_cue_point(self, d):
         if self._active_cue:
-            transform = self._get_frames_transform(self._draw_state.diff_width)
             attr_name = '_{}_cue'.format(self._active_cue)
-            setattr(self, attr_name, getattr(self, attr_name) + transform(d))
+            setattr(
+                self, attr_name,
+                getattr(self, attr_name) + self._draw_state.to_frames(d))
 
     def _on_left(self):
         self._move_active_cue_point(-1)
