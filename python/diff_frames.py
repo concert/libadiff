@@ -126,6 +126,8 @@ class DiffApp:
         self._len = None
 
         self._zoom = 1.0
+        self._start_cue = 0
+        self._end_cue = 0
 
         self._loop = asyncio.get_event_loop()
         self._terminal = terminal or LinePrintingTerminal()
@@ -137,6 +139,8 @@ class DiffApp:
             '+': self._zoom_in,
             '=': self._zoom_in,
             '-': self._zoom_out,
+            'ctrl i': self._cue_next_hunk,  # Tab, apparently
+            'shift tab': self._cue_prev_hunk,
         }
 
     def __call__(self):
@@ -158,6 +162,7 @@ class DiffApp:
         self._len = max(
             self._psf_a.frames() + b_offset,
             self._psf_b.frames() + a_offset)
+        self._cue_next_hunk()
         self._draw()
         while True:
             yield from asyncio.sleep(1)
@@ -238,6 +243,13 @@ class DiffApp:
             overlay_lists(diff_line, insertion_str, dl_start_idx)
         return self._common_fmt(''.join(diff_line))
 
+    def _make_cue_line(self, width):
+        cue_line = [' '] * width
+        transform = self._get_transform(width)
+        overlay_lists(cue_line, '[', transform(self._start_cue))
+        overlay_lists(cue_line, ']', transform(self._end_cue))
+        return ''.join(cue_line)
+
     def _draw(self):
         duration_a = fmt_seconds(duration(self._psf_a))
         duration_b = fmt_seconds(duration(self._psf_b))
@@ -246,6 +258,7 @@ class DiffApp:
         lines = [
             self._make_diff_line(
                 self._diff, diff_line_width) + ' ' + duration_a,
+            self._make_cue_line(diff_line_width),
             self._make_diff_line(
                 self._diff, diff_line_width, is_b=True) + ' ' +
             duration_b
@@ -257,6 +270,21 @@ class DiffApp:
 
     def _zoom_out(self):
         self._zoom = max(1.0, self._zoom / 1.1)
+
+    def _cue_hunk_helper(self, iterable, predicate):
+        for hunk in iterable:
+            if predicate(hunk):
+                self._start_cue = hunk.start
+                self._end_cue = hunk.end
+                break
+
+    def _cue_next_hunk(self):
+        self._cue_hunk_helper(
+            self._diff, lambda hunk: hunk.start > self._start_cue)
+
+    def _cue_prev_hunk(self):
+        self._cue_hunk_helper(
+            reversed(self._diff), lambda hunk: hunk.end < self._end_cue)
 
 
 def diff(filename_a, filename_b):
