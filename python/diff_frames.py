@@ -116,6 +116,26 @@ def overlay_lists(base, new, offset):
                 break
 
 
+class _DrawState:
+    '''Throw-away objects for ease of re-initialising draw state on every draw()
+    call.
+    '''
+    __slots__ = (
+        'app', '_diff_width', 'start_time_a', 'end_time_a', 'start_time_b',
+        'end_time_b')
+
+    def __init__(self, app):
+        self.app = app
+        self._diff_width = None
+
+    @property
+    def diff_width(self):
+        if not self._diff_width:
+            duration_width = max(len(self.end_time_a), len(self.end_time_b))
+            self._diff_width = self.app._terminal.width - duration_width - 1
+        return self._diff_width
+
+
 class DiffApp:
     def __init__(self, filename_a, filename_b, terminal=None):
         self.filename_a = filename_a
@@ -128,6 +148,9 @@ class DiffApp:
         self._zoom = 1.0
         self._start_cue = 0
         self._end_cue = 0
+        self._active_cue = None
+
+        self._draw_state = None
 
         self._loop = asyncio.get_event_loop()
         self._terminal = terminal or LinePrintingTerminal()
@@ -141,6 +164,10 @@ class DiffApp:
             '-': self._zoom_out,
             'ctrl i': self._cue_next_hunk,  # Tab, apparently
             'shift tab': self._cue_prev_hunk,
+            '[': self._select_start_cue,
+            ']': self._select_end_cue,
+            'left': self._on_left,
+            'right': self._on_right,
         }
 
     def __call__(self):
@@ -206,7 +233,7 @@ class DiffApp:
             b_offset += hunk.end_b - hunk.start_b
         return tuple(result), a_offset, b_offset
 
-    def _get_transform(self, width):
+    def _get_term_transform(self, width):
         '''Returns a function that transforms a point in the space of the
         "virtual" diff space, given in frames, into a x-coordintate on the
         terminal, taking into account various application state parameters.
@@ -216,9 +243,18 @@ class DiffApp:
             return int(chars_per_frame * frames)
         return transform
 
-    def _make_diff_line(self, diff, width, is_b=False):
-        diff_line = ['-'] * width
-        transform = self._get_transform(width)
+    def _get_frames_transform(self, width):
+        '''Returns the inverse of _get_term_transform
+        '''
+        # FIXME: Should be able to factor this better - it's just an inverse!
+        frames_per_char = self._len / (self._zoom * width)
+        def transform(chars):
+            return int(frames_per_char * chars)
+        return transform
+
+    def _make_diff_line(self, draw_state, diff, is_b=False):
+        diff_line = ['-'] * draw_state.diff_width
+        transform = self._get_term_transform(draw_state.diff_width)
         for hunk in diff:
             hunk_num_chars = transform(len(hunk))
             dl_start_idx = transform(hunk.start)
@@ -241,27 +277,48 @@ class DiffApp:
             insertion_str[0] = self._insertion_fmt + insertion_str[0]
             insertion_str[-1] += self._common_fmt
             overlay_lists(diff_line, insertion_str, dl_start_idx)
-        return self._common_fmt(''.join(diff_line))
+        if is_b:
+            duration = draw_state.end_time_b
+        else:
+            duration = draw_state.end_time_a
+        return self._common_fmt(''.join(diff_line)) + ' ' + duration
+
+    @property
+    def _start_cue_mark(self):
+        if self._active_cue == 'start':
+            return self._terminal.reverse('[')
+        else:
+            return '['
+
+    @property
+    def _end_cue_mark(self):
+        if self._active_cue == 'stop':
+            return self._terminal.reverse(']')
+        else:
+            return ']'
 
     def _make_cue_line(self, width):
         cue_line = [' '] * width
-        transform = self._get_transform(width)
-        overlay_lists(cue_line, '[', transform(self._start_cue))
-        overlay_lists(cue_line, ']', transform(self._end_cue))
+        transform = self._get_term_transform(width)
+        overlay_lists(
+            cue_line, [self._start_cue_mark], transform(self._start_cue))
+        overlay_lists(
+            cue_line, [self._end_cue_mark], transform(self._end_cue))
         return ''.join(cue_line)
 
+    @property
+    def _diff_width(self):
+        if self._zoom > 1:
+            pass
+
     def _draw(self):
-        duration_a = fmt_seconds(duration(self._psf_a))
-        duration_b = fmt_seconds(duration(self._psf_b))
-        duration_width = max(len(duration_a), len(duration_b))
-        diff_line_width = self._terminal.width - duration_width - 1
+        self._draw_state = ds = _DrawState(self)
+        ds.end_time_a = fmt_seconds(duration(self._psf_a))
+        ds.end_time_b = fmt_seconds(duration(self._psf_b))
         lines = [
-            self._make_diff_line(
-                self._diff, diff_line_width) + ' ' + duration_a,
-            self._make_cue_line(diff_line_width),
-            self._make_diff_line(
-                self._diff, diff_line_width, is_b=True) + ' ' +
-            duration_b
+            self._make_diff_line(ds, self._diff),
+            self._make_cue_line(ds.diff_width),
+            self._make_diff_line(ds, self._diff, is_b=True)
         ]
         self._terminal.print_lines(lines)
 
@@ -272,6 +329,7 @@ class DiffApp:
         self._zoom = max(1.0, self._zoom / 1.1)
 
     def _cue_hunk_helper(self, iterable, predicate):
+        self._active_cue = None
         for hunk in iterable:
             if predicate(hunk):
                 self._start_cue = hunk.start
@@ -285,6 +343,30 @@ class DiffApp:
     def _cue_prev_hunk(self):
         self._cue_hunk_helper(
             reversed(self._diff), lambda hunk: hunk.end < self._end_cue)
+
+    def _select_cue_helper(self, cue_name):
+        if self._active_cue == cue_name:
+            self._active_cue = None
+        else:
+            self._active_cue = cue_name
+
+    def _select_start_cue(self):
+        self._select_cue_helper('start')
+
+    def _select_end_cue(self):
+        self._select_cue_helper('stop')
+
+    def _move_active_cue_point(self, d):
+        if self._active_cue:
+            transform = self._get_frames_transform(self._draw_state.diff_width)
+            attr_name = '_{}_cue'.format(self._active_cue)
+            setattr(self, attr_name, getattr(self, attr_name) + transform(d))
+
+    def _on_left(self):
+        self._move_active_cue_point(-1)
+
+    def _on_right(self):
+        self._move_active_cue_point(1)
 
 
 def diff(filename_a, filename_b):
