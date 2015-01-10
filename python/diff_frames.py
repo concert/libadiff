@@ -8,20 +8,18 @@ import subprocess
 import pysndfile
 
 from terminal import LinePrintingTerminal, Keyboard
-from util import caching_property, fmt_seconds, overlay_lists
+from util import caching_property, fmt_seconds, overlay_lists, AB
 
 bdiff_frames_path = os.path.join(
     os.path.dirname(__file__), os.pardir, 'diff_frames')
 
 
 class Hunk:
-    __slots__ = 'start_a', 'end_a', 'start_b', 'end_b'
+    __slots__ = 'starts', 'ends'
 
     def __init__(self, start_a, end_a, start_b, end_b):
-        self.start_a = start_a
-        self.end_a = end_a
-        self.start_b = start_b
-        self.end_b = end_b
+        self.starts = AB(start_a, start_b)
+        self.ends = AB(end_a, end_b)
 
     def __eq__(self, other):
         return all(
@@ -32,11 +30,11 @@ class Hunk:
 class NormalisedHunk(Hunk):
     @property
     def start(self):
-        return self.start_a
+        return self.starts.a
 
     @property
     def end(self):
-        return max(self.end_a, self.end_b)
+        return max(self.ends)
 
     def __len__(self):
         return self.end - self.start
@@ -56,15 +54,14 @@ class _DrawState:
     call.
     '''
     __slots__ = (
-        'app', '_diff_width', '_chars_per_frame', 'start_time_a',
-        'end_time_a', 'start_time_b', 'end_time_b')
+        'app', '_diff_width', '_chars_per_frame', 'start_times', 'end_times')
 
     def __init__(self, app):
         self.app = app
 
     @caching_property
     def diff_width(self):
-        duration_width = max(len(self.end_time_a), len(self.end_time_b))
+        duration_width = max(map(len, self.end_times))
         return self.app._terminal.width - duration_width - 1
 
     @caching_property
@@ -86,10 +83,8 @@ class _DrawState:
 
 class DiffApp:
     def __init__(self, filename_a, filename_b, terminal=None):
-        self.filename_a = filename_a
-        self.filename_b = filename_b
-        self._psf_a = None
-        self._psf_b = None
+        self.filenames = AB(filename_a, filename_b)
+        self._psfs = None
         self._diff = None
         self._len = None
 
@@ -119,8 +114,7 @@ class DiffApp:
         }
 
     def __call__(self):
-        self._psf_a = pysndfile.PySndfile(self.filename_a)
-        self._psf_b = pysndfile.PySndfile(self.filename_b)
+        self._psfs = AB(*map(pysndfile.PySndfile, self.filenames))
         with self._terminal.unbuffered_input(), (
                 self._terminal.nonblocking_input()), (
                 self._terminal.hidden_cursor()):
@@ -133,10 +127,10 @@ class DiffApp:
     @asyncio.coroutine
     def _run(self):
         diff = yield from self._do_diff()
-        self._diff, a_offset, b_offset = self._process_diff(diff)
+        self._diff, offsets = self._process_diff(diff)
         self._len = max(
-            self._psf_a.frames() + b_offset,
-            self._psf_b.frames() + a_offset)
+            self._psfs.a.frames() + offsets.b,
+            self._psfs.b.frames() + offsets.a)
         self._cue_next_hunk()
         self._draw()
         while True:
@@ -154,7 +148,7 @@ class DiffApp:
         between the two audio files.
         '''
         process = yield from asyncio.create_subprocess_exec(
-            bdiff_frames_path, self.filename_a, self.filename_b,
+            bdiff_frames_path, self.filenames.a, self.filenames.b,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = yield from process.communicate()
         if process.returncode:
@@ -168,20 +162,18 @@ class DiffApp:
         '''Translates the raw absolute frame references in the given diff into a
         common "virtual" space where like sections are aligned.
         '''
-        a_offset = 0
-        b_offset = 0
+        offsets = AB(0, 0)
         result = []
         for hunk in diff:
             result.append(NormalisedHunk(
-                hunk.start_a + b_offset,
-                hunk.end_a + b_offset,
-                hunk.start_b + a_offset,
-                hunk.end_b + a_offset))
-            a_offset += hunk.end_a - hunk.start_a
-            b_offset += hunk.end_b - hunk.start_b
-        return tuple(result), a_offset, b_offset
+                hunk.starts.a + offsets.b,
+                hunk.ends.a + offsets.b,
+                hunk.starts.b + offsets.a,
+                hunk.ends.b + offsets.a))
+            offsets += hunk.ends - hunk.starts
+        return tuple(result), offsets
 
-    def _make_diff_line(self, draw_state, diff, is_b=False):
+    def _make_diff_line(self, draw_state, diff, idx):
         diff_line = ['-'] * draw_state.diff_width
         for hunk in diff:
             hunk_num_chars = draw_state.to_chars(len(hunk))
@@ -194,21 +186,14 @@ class DiffApp:
             elif dl_start_idx > len(diff_line):
                 break
 
-            if is_b:
-                frames_inserted = hunk.end_b - hunk.start_b
-            else:
-                frames_inserted = hunk.end_a - hunk.start_a
-
+            frames_inserted = hunk.ends[idx] - hunk.starts[idx]
             insertion_str = '+' * int(
                 (frames_inserted / len(hunk)) * hunk_num_chars)
             insertion_str = list(insertion_str.ljust(hunk_num_chars))
             insertion_str[0] = self._insertion_fmt + insertion_str[0]
             insertion_str[-1] += self._common_fmt
             overlay_lists(diff_line, insertion_str, dl_start_idx)
-        if is_b:
-            duration = draw_state.end_time_b
-        else:
-            duration = draw_state.end_time_a
+        duration = draw_state.end_times[idx]
         return self._common_fmt(''.join(diff_line)) + ' ' + duration
 
     @property
@@ -242,12 +227,11 @@ class DiffApp:
 
     def _draw(self):
         self._draw_state = ds = _DrawState(self)
-        ds.end_time_a = fmt_seconds(duration(self._psf_a))
-        ds.end_time_b = fmt_seconds(duration(self._psf_b))
+        ds.end_times = AB(*map(fmt_seconds, map(duration, self._psfs)))
         lines = [
-            self._make_diff_line(ds, self._diff),
+            self._make_diff_line(ds, self._diff, 0),
             self._make_cue_line(ds),
-            self._make_diff_line(ds, self._diff, is_b=True)
+            self._make_diff_line(ds, self._diff, 1)
         ]
         self._terminal.print_lines(lines)
 
