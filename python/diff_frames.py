@@ -56,13 +56,11 @@ class _DrawState:
     call.
     '''
     __slots__ = (
-        'app', '_diff_width', '_chars_per_frame', 'start_time_a', 'end_time_a',
-        'start_time_b', 'end_time_b')
+        'app', '_diff_width', '_chars_per_frame', 'start_time_a',
+        'end_time_a', 'start_time_b', 'end_time_b')
 
     def __init__(self, app):
         self.app = app
-        self._diff_width = None
-        self._chars_per_frame = None
 
     @caching_property
     def diff_width(self):

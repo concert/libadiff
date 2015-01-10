@@ -6,7 +6,7 @@ def caching_property(method):
     @property
     @wraps(method)
     def new_property(self):
-        if not getattr(self, attr_name):
+        if not hasattr(self, attr_name):
             setattr(self, attr_name, method(self))
         return getattr(self, attr_name)
     return new_property

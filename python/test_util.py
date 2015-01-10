@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from util import fmt_seconds, overlay_lists
+from util import fmt_seconds, overlay_lists, caching_property
 
 
 class TestUtil(TestCase):
@@ -26,3 +26,25 @@ class TestUtil(TestCase):
                 new = ['+'] * i
                 overlay_lists(base, new, offset)
                 self.assertEqual(base, list(expected))
+
+    def test_caching_property(self):
+        self.computed = 0
+        class Foo:
+            def __init__(self, return_value):
+                self.return_value = return_value
+
+            @caching_property
+            def something(instance):
+                self.computed += 1
+                return instance.return_value
+
+        f1 = Foo('bananas')
+        self.assertEqual(f1.something, 'bananas')
+        self.assertEqual(self.computed, 1)
+        self.assertEqual(f1.something, 'bananas')
+        self.assertEqual(self.computed, 1)
+        f2 = Foo('')
+        self.assertEqual(f2.something, '')
+        self.assertEqual(self.computed, 2)
+        self.assertEqual(f2.something, '')
+        self.assertEqual(self.computed, 2)
