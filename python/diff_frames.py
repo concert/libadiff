@@ -4,6 +4,7 @@ import sys
 import argh
 import asyncio
 import subprocess
+from functools import wraps
 
 import pysndfile
 
@@ -116,24 +117,50 @@ def overlay_lists(base, new, offset):
                 break
 
 
+def caching_property(method):
+    attr_name = '_' + method.__name__
+    @property
+    @wraps(method)
+    def new_property(self):
+        if not getattr(self, attr_name):
+            setattr(self, attr_name, method(self))
+        return getattr(self, attr_name)
+    return new_property
+
+
 class _DrawState:
     '''Throw-away objects for ease of re-initialising draw state on every draw()
     call.
     '''
     __slots__ = (
-        'app', '_diff_width', 'start_time_a', 'end_time_a', 'start_time_b',
-        'end_time_b')
+        'app', '_diff_width', '_chars_per_frame', 'start_time_a', 'end_time_a',
+        'start_time_b', 'end_time_b')
 
     def __init__(self, app):
         self.app = app
         self._diff_width = None
+        self._chars_per_frame = None
 
-    @property
+    @caching_property
     def diff_width(self):
-        if not self._diff_width:
-            duration_width = max(len(self.end_time_a), len(self.end_time_b))
-            self._diff_width = self.app._terminal.width - duration_width - 1
-        return self._diff_width
+        duration_width = max(len(self.end_time_a), len(self.end_time_b))
+        return self.app._terminal.width - duration_width - 1
+
+    @caching_property
+    def chars_per_frame(self):
+        return self.app._zoom * self.diff_width / self.app._len
+
+    def to_chars(self, frames):
+        '''Transforms a point in the space of the "virtual" diff space, given in
+        frames, into a x-coordintate on the terminal, taking into account
+        various application state parameters.
+        '''
+        return int(self.chars_per_frame * frames)
+
+    def to_frames(self, chars):
+        '''The inverse of to_chars()
+        '''
+        return int(chars / self.chars_per_frame)
 
 
 class DiffApp:
@@ -233,31 +260,11 @@ class DiffApp:
             b_offset += hunk.end_b - hunk.start_b
         return tuple(result), a_offset, b_offset
 
-    def _get_term_transform(self, width):
-        '''Returns a function that transforms a point in the space of the
-        "virtual" diff space, given in frames, into a x-coordintate on the
-        terminal, taking into account various application state parameters.
-        '''
-        chars_per_frame = self._zoom * width / self._len
-        def transform(frames):
-            return int(chars_per_frame * frames)
-        return transform
-
-    def _get_frames_transform(self, width):
-        '''Returns the inverse of _get_term_transform
-        '''
-        # FIXME: Should be able to factor this better - it's just an inverse!
-        frames_per_char = self._len / (self._zoom * width)
-        def transform(chars):
-            return int(frames_per_char * chars)
-        return transform
-
     def _make_diff_line(self, draw_state, diff, is_b=False):
         diff_line = ['-'] * draw_state.diff_width
-        transform = self._get_term_transform(draw_state.diff_width)
         for hunk in diff:
-            hunk_num_chars = transform(len(hunk))
-            dl_start_idx = transform(hunk.start)
+            hunk_num_chars = draw_state.to_chars(len(hunk))
+            dl_start_idx = draw_state.to_chars(hunk.start)
             dl_end_idx = dl_start_idx + hunk_num_chars
 
             # hunk is entirely out of viewport, so don't bother drawing
@@ -297,13 +304,14 @@ class DiffApp:
         else:
             return ']'
 
-    def _make_cue_line(self, width):
-        cue_line = [' '] * width
-        transform = self._get_term_transform(width)
+    def _make_cue_line(self, draw_state):
+        cue_line = [' '] * draw_state.diff_width
         overlay_lists(
-            cue_line, [self._start_cue_mark], transform(self._start_cue))
+            cue_line, [self._start_cue_mark],
+            draw_state.to_chars(self._start_cue))
         overlay_lists(
-            cue_line, [self._end_cue_mark], transform(self._end_cue))
+            cue_line, [self._end_cue_mark],
+            draw_state.to_chars(self._end_cue))
         return ''.join(cue_line)
 
     @property
@@ -317,7 +325,7 @@ class DiffApp:
         ds.end_time_b = fmt_seconds(duration(self._psf_b))
         lines = [
             self._make_diff_line(ds, self._diff),
-            self._make_cue_line(ds.diff_width),
+            self._make_cue_line(ds),
             self._make_diff_line(ds, self._diff, is_b=True)
         ]
         self._terminal.print_lines(lines)
