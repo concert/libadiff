@@ -1,4 +1,7 @@
 from functools import wraps
+from collections import Sequence
+from itertools import starmap
+from operator import add, sub, eq
 
 
 def caching_property(method):
@@ -23,6 +26,34 @@ def overlay_lists(base, new, offset):
                 base[base_idx] = new[i]
             elif base_idx >= len(base):
                 break
+
+
+class AB(Sequence):
+    __slots__ = '_data',
+
+    def __init__(self, a, b):
+        self._data = [a, b]
+
+    def __len__(self):
+        return len(self._data)
+
+    def __getitem__(self, i):
+        return self._data[i]
+
+    def __setitem__(self, i, value):
+        self._data[i] = value
+
+    def __add__(self, other):
+        return self.__class__(*starmap(add, zip(self, other)))
+
+    def __sub__(self, other):
+        return self.__class__(*starmap(sub, zip(self, other)))
+
+    def __eq__(self, other):
+        return len(self) == len(other) and all(starmap(eq, zip(self, other)))
+
+    a = property(lambda self: self[0])
+    b = property(lambda self: self[1])
 
 
 class Time:

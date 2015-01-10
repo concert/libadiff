@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from util import fmt_seconds, overlay_lists, caching_property
+from util import fmt_seconds, overlay_lists, caching_property, AB
 
 
 class TestUtil(TestCase):
@@ -48,3 +48,18 @@ class TestUtil(TestCase):
         self.assertEqual(self.computed, 2)
         self.assertEqual(f2.something, '')
         self.assertEqual(self.computed, 2)
+
+    def test_ab(self):
+        self.assertEqual(AB(1, 2), AB(1, 2))
+        self.assertEqual(AB(1, 2), (1, 2))
+        self.assertNotEqual(AB(1, 2), AB(3, 4))
+        self.assertNotEqual(AB(1, 2), (1, 2, 3))
+        self.assertEqual(AB(1, 2) + AB(3, 2), AB(4, 4))
+        self.assertEqual(AB(1, 2) - AB(3, 2), AB(-2, 0))
+        chars = 'ab'
+        ab = AB(*chars)
+        for i, c in enumerate(chars):
+            self.assertEqual(ab[i], c)
+            self.assertEqual(getattr(ab, c), c)
+            ab[i] = i
+            self.assertEqual(ab[i], i)
