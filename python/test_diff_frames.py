@@ -1,10 +1,9 @@
 from unittest import TestCase
-from mock import Mock
+from mock import Mock, patch
 
 from pysndfile import PySndfile
 from terminal import LinePrintingTerminal
-from diff_frames import (
-    fmt_seconds, duration, DiffApp, Hunk, NormalisedHunk, overlay_lists)
+from diff_frames import duration, DiffApp, Hunk, NormalisedHunk, _DrawState
 
 
 class TestHunk(TestCase):
@@ -51,11 +50,17 @@ class TestDiffFrames(TestCase):
 
     def _diff_line_helper(self, app, expected_a, expected_b):
         app._len = 12000  # each 1000 frames is 4 characters at 48 width
-        result = app._make_diff_line(self.processed_diff, 48)
-        self.assertEqual(repr(result), repr(expected_a))
-        result = app._make_diff_line(
-            self.processed_diff, 48, is_b=True)
-        self.assertEqual(repr(result), repr(expected_b))
+        draw_state = _DrawState(app)
+        draw_state.end_time_a = 'woo'
+        expected_a += ' woo'
+        draw_state.end_time_b = 'waa'
+        expected_b += ' waa'
+        with patch.object(_DrawState, 'diff_width', 48):
+            result = app._make_diff_line(draw_state, self.processed_diff)
+            self.assertEqual(repr(result), repr(expected_a))
+            result = app._make_diff_line(
+                draw_state, self.processed_diff, is_b=True)
+            self.assertEqual(repr(result), repr(expected_b))
 
     def test_make_diff_line_plain(self):
         self._diff_line_helper(
