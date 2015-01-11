@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from util import overlay_lists, caching_property, AB, Time
+from util import overlay_lists, caching_property, AB, Time, Clamped
 
 
 class TestUtil(TestCase):
@@ -96,3 +96,43 @@ class TestAB(TestCase):
         ab = AB('hello', 'world')
         print(ab.index)
         self.assertEqual(ab.index('l'), AB(2, 3))
+
+
+class TestClamped(TestCase):
+    def test_limits(self):
+        clamped = Clamped(2, 4)
+
+        class A:
+            attr = clamped
+
+            def get_min(ins):
+                return ins._min
+
+            def get_max(ins):
+                return ins._max
+            dynamic = Clamped(get_min, get_max)
+
+        self.assertIs(A.attr, clamped)
+
+        a = A()
+        with self.assertRaises(AttributeError):
+            a.attr
+
+        a.attr = 3
+        self.assertEqual(a.attr, 3)
+        a.attr -= 2
+        self.assertEqual(a.attr, 2)
+        a.attr = 72
+        self.assertEqual(a.attr, 4)
+
+        def check(min_, max_, ok, too_small, too_big):
+            a._min = min_
+            a._max = max_
+            a.dynamic = ok
+            self.assertEqual(a.dynamic, ok)
+            a.dynamic = too_small
+            self.assertEqual(a.dynamic, min_)
+            a.dynamic = too_big
+            self.assertEqual(a.dynamic, max_)
+        check('p', 'w', 'q', 'a', 'z')
+        check((1, 1), (10, 10), (5, 5), (0, 10), (11, 0))

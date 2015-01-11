@@ -28,6 +28,30 @@ def overlay_lists(base, new, offset):
                 break
 
 
+class Clamped:
+    '''Descriptor that limits the range of an attribute, given two callbacks
+    values or callbacks for minimum values.
+    '''
+    def __init__(self, min_, max_):
+        self.min = min_ if callable(min_) else lambda _: min_
+        self.max = max_ if callable(max_) else lambda _: max_
+
+    @property
+    def identifier(self):
+        return '_{:x}'.format(id(self))
+
+    def __get__(self, obj, type_):
+        if obj is None:
+            return self
+        else:
+            return getattr(obj, self.identifier)
+
+    def __set__(self, obj, value):
+        setattr(
+            obj, self.identifier,
+            sorted((self.min(obj), value, self.max(obj)))[1])
+
+
 class AB:
     __slots__ = '_data',
 
