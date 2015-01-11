@@ -19,8 +19,21 @@ class Hunk:
     __slots__ = 'starts', 'ends'
 
     def __init__(self, start_a, end_a, start_b, end_b):
+        '''
+        :parameter start_a: The frame in A where the files start to differ.
+        :parameter end_a: The frame in A after which the files cease to differ.
+        :parameter start_b: The frame in B where the files start to differ.
+        :parameter end_b: The frame in B after which the file cease to differ.
+        '''
         self.starts = AB(start_a, start_b)
         self.ends = AB(end_a, end_b)
+
+    def _get_attr_string(self):
+        return 'start_a={}, end_a={}, start_b={}, end_b={}'.format(*self)
+
+    def __repr__(self):
+        return '{}({})'.format(
+            self.__class__.__name__, self._get_attr_string())
 
     def __eq__(self, other):
         return all(
