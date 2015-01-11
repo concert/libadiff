@@ -1,16 +1,32 @@
 from unittest import TestCase
 
-from util import fmt_seconds, overlay_lists, caching_property, AB
+from util import overlay_lists, caching_property, AB, Time
 
 
 class TestUtil(TestCase):
-    def test_fmt_seconds(self):
-        self.assertEqual(fmt_seconds(1.567), '1.57')
-        self.assertEqual(fmt_seconds(59.899), '59.90')
-        self.assertEqual(fmt_seconds(59.999), '1:00.0')
-        self.assertEqual(fmt_seconds(61.789), '1:01.8')
-        self.assertEqual(fmt_seconds(3599.99), '1:00:00')
-        self.assertEqual(fmt_seconds(3601.5), '1:00:02')
+    def test_time(self):
+        v = ValueError()
+        data = (
+            (1.567, '1.57', '1.57', '0:01.6', '0:00:02'),
+            (59.899, '59.90', '59.90', '0:59.9', '0:01:00'),
+            (59.999, '1:00.0', v, '1:00.0', '0:01:00'),
+            (61.789, '1:01.8', v, '1:01.8', '0:01:02'),
+            (3599.99, '1:00:00', v, v, '1:00:00'),
+            (3601.5, '1:00:02', v, v, '1:00:02'),
+        )
+        for seconds, free, fixed_2, fixed_1, fixed_0 in data:
+            self.assertEqual(str(Time.from_seconds(seconds)), free)
+            def check(precision, expected, msg):
+                if isinstance(expected, Exception):
+                    self.assertRaises(
+                        type(expected), Time.from_seconds, seconds, precision)
+                else:
+                    self.assertEqual(
+                        str(Time.from_seconds(seconds, precision)), expected,
+                        msg.format(seconds))
+            check(2, fixed_2, '{} fixed 2')
+            check(1, fixed_1, '{} fixed 1')
+            check(0, fixed_0, '{} fixed 0')
 
     def test_overlay_lists(self):
         data = (

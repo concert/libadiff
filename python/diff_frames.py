@@ -8,7 +8,7 @@ import subprocess
 import pysndfile
 
 from terminal import LinePrintingTerminal, Keyboard
-from util import caching_property, fmt_seconds, overlay_lists, AB
+from util import caching_property, overlay_lists, AB, Time
 
 bdiff_frames_path = os.path.join(
     os.path.dirname(__file__), os.pardir, 'diff_frames')
@@ -58,11 +58,17 @@ class _DrawState:
 
     def __init__(self, app):
         self.app = app
+        self.start_times = None
+        self.end_times = None
 
     @caching_property
     def diff_width(self):
-        duration_width = max(map(len, self.end_times))
-        return self.app._terminal.width - duration_width - 1
+        if self.start_times:
+            start_time_width = max(map(len, self.start_times)) + 1
+        else:
+            start_time_width = 0
+        end_time_width = max(map(len, self.end_times)) + 1
+        return self.app._terminal.width - start_time_width - end_time_width
 
     @caching_property
     def chars_per_frame(self):
@@ -85,6 +91,7 @@ class DiffApp:
     def __init__(self, filename_a, filename_b, terminal=None):
         self.filenames = AB(filename_a, filename_b)
         self._psfs = None
+        self._durations = None
         self._diff = None
         self._len = None
 
@@ -114,7 +121,9 @@ class DiffApp:
         }
 
     def __call__(self):
-        self._psfs = AB(*map(pysndfile.PySndfile, self.filenames))
+        self._psfs = AB.from_map(pysndfile.PySndfile, self.filenames)
+        self._durations = AB.from_map(duration, self._psfs)
+        self._durations = AB.from_map(Time.from_seconds, self._durations)
         with self._terminal.unbuffered_input(), (
                 self._terminal.nonblocking_input()), (
                 self._terminal.hidden_cursor()):
@@ -222,7 +231,10 @@ class DiffApp:
 
     def _draw(self):
         self._draw_state = ds = _DrawState(self)
-        ds.end_times = AB(*map(fmt_seconds, map(duration, self._psfs)))
+        if self._zoom == 1:
+            ds.end_times = AB.from_map(str, self._durations)
+        else:
+            pass
         lines = [
             self._make_diff_line(ds, self._diff, 0),
             self._make_cue_line(ds),
