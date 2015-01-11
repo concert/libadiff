@@ -59,6 +59,9 @@ class AB(Sequence):
     def from_map(cls, func, iterable):
         return cls(*map(func, iterable))
 
+    def reversed(self):
+        return self.__class__(*reversed(self))
+
 
 class Time(namedtuple('Time', ('hours', 'minutes', 'seconds', 'precision'))):
     '''Handle rounding and pretty formatting of time. Precision has two related
