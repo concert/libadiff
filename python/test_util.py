@@ -65,13 +65,17 @@ class TestUtil(TestCase):
         self.assertEqual(f2.something, '')
         self.assertEqual(self.computed, 2)
 
-    def test_ab(self):
+
+class TestAB(TestCase):
+    def test_eq(self):
         self.assertEqual(AB(1, 2), AB(1, 2))
         self.assertEqual(AB(1, 2), (1, 2))
         self.assertNotEqual(AB(1, 2), AB(3, 4))
         self.assertNotEqual(AB(1, 2), (1, 2, 3))
         self.assertEqual(AB(1, 2) + AB(3, 2), AB(4, 4))
         self.assertEqual(AB(1, 2) - AB(3, 2), AB(-2, 0))
+
+    def test_get_set_item(self):
         chars = 'ab'
         ab = AB(*chars)
         for i, c in enumerate(chars):
@@ -79,3 +83,16 @@ class TestUtil(TestCase):
             self.assertEqual(getattr(ab, c), c)
             ab[i] = i
             self.assertEqual(ab[i], i)
+
+    def test_reversed(self):
+        self.assertEqual(AB(1, 2).reversed(), AB(2, 1))
+
+    def test_from_map(self):
+        plus_one = lambda n: n + 1
+        self.assertEqual(AB.from_map(plus_one, AB(1, 2)), AB(2, 3))
+        self.assertRaises(TypeError, AB.from_map, plus_one, (1, 2, 3))
+
+    def test_attr_lookup_and_call(self):
+        ab = AB('hello', 'world')
+        print(ab.index)
+        self.assertEqual(ab.index('l'), AB(2, 3))

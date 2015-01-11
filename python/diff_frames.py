@@ -187,9 +187,7 @@ class DiffApp:
     def _run(self):
         diff = yield from self._do_diff()
         self._diff = tuple(NormalisedHunk.process_diff(diff))
-        self._len = max(
-            self._psfs.a.frames() + self._diff[-1].offsets.a,
-            self._psfs.b.frames() + self._diff[-1].offsets.b)
+        self._len = max(self._psfs.frames() + self._diff[-1].offsets)
         self._cue_next_hunk()
         self._draw()
         while True:

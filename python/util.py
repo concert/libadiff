@@ -28,7 +28,7 @@ def overlay_lists(base, new, offset):
                 break
 
 
-class AB(Sequence):
+class AB:
     __slots__ = '_data',
 
     def __init__(self, a, b):
@@ -36,6 +36,9 @@ class AB(Sequence):
 
     def __repr__(self):
         return '{}({}, {})'.format(self.__class__.__name__, *self)
+
+    def __iter__(self):
+        return iter(self._data)
 
     def __len__(self):
         return len(self._data)
@@ -45,6 +48,12 @@ class AB(Sequence):
 
     def __setitem__(self, i, value):
         self._data[i] = value
+
+    def __getattr__(self, name):
+        return self.from_map(lambda obj: getattr(obj, name), self)
+
+    def __call__(self, *args, **kwargs):
+        return self.from_map(lambda obj: obj(*args, **kwargs), self)
 
     def __add__(self, other):
         return self.__class__(*starmap(add, zip(self, other)))
