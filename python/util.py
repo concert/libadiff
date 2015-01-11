@@ -34,6 +34,9 @@ class AB(Sequence):
     def __init__(self, a, b):
         self._data = [a, b]
 
+    def __repr__(self):
+        return '{}({}, {})'.format(self.__class__.__name__, *self)
+
     def __len__(self):
         return len(self._data)
 
