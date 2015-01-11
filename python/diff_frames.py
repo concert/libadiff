@@ -220,11 +220,6 @@ class DiffApp:
             draw_state.to_chars(self._end_cue))
         return ''.join(cue_line)
 
-    @property
-    def _diff_width(self):
-        if self._zoom > 1:
-            pass
-
     def _draw(self):
         self._draw_state = ds = _DrawState(self)
         ds.end_times = AB(*map(fmt_seconds, map(duration, self._psfs)))
