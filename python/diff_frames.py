@@ -45,6 +45,39 @@ class Hunk:
 
 
 class NormalisedHunk(Hunk):
+    __slots__ = Hunk.__slots__ + ('offsets',)
+
+    def __init__(self, start_a, end_a, start_b, end_b, offset_a, offset_b):
+        super().__init__(start_a, end_a, start_b, end_b)
+        self.offsets = AB(offset_a, offset_b)
+
+    @classmethod
+    def from_hunk(cls, hunk, offsets):
+        '''
+        :parameter hunk: The :class:`~Hunk` object that we wish to normalise
+            with the given offsets.
+        :parameter offsets: The number of frames that must be subtracted from
+            the normalised diff space to get an actual frame in each file.
+        '''
+        starts = hunk.starts + offsets
+        ends = hunk.ends + offsets
+        return cls(starts.a, ends.a, starts.b, ends.b, offsets.a, offsets.b)
+
+    @classmethod
+    def process_diff(cls, diff):
+        '''Translates the raw absolute frame references in the given diff into a
+        common "virtual" space where like sections are aligned.
+        '''
+        offsets = AB(0, 0)
+        for hunk in diff:
+            yield cls.from_hunk(hunk, offsets)
+            offsets += (hunk.ends - hunk.starts).reversed()
+
+    def _get_attr_string(self):
+        attr_string = super()._get_attr_string()
+        attr_string += ', offset_a={}, offset_b={}'.format(*self.offsets)
+        return attr_string
+
     @property
     def start(self):
         return self.starts.a
@@ -153,10 +186,10 @@ class DiffApp:
     @asyncio.coroutine
     def _run(self):
         diff = yield from self._do_diff()
-        self._diff, offsets = self._process_diff(diff)
+        self._diff = tuple(NormalisedHunk.process_diff(diff))
         self._len = max(
-            self._psfs.a.frames() + offsets.b,
-            self._psfs.b.frames() + offsets.a)
+            self._psfs.a.frames() + self._diff[-1].offsets.a,
+            self._psfs.b.frames() + self._diff[-1].offsets.b)
         self._cue_next_hunk()
         self._draw()
         while True:
@@ -182,22 +215,6 @@ class DiffApp:
         else:
             return tuple(
                 Hunk(*map(int, l.split())) for l in stdout.splitlines())
-
-    @staticmethod
-    def _process_diff(diff):
-        '''Translates the raw absolute frame references in the given diff into a
-        common "virtual" space where like sections are aligned.
-        '''
-        offsets = AB(0, 0)
-        result = []
-        for hunk in diff:
-            result.append(NormalisedHunk(
-                hunk.starts.a + offsets.b,
-                hunk.ends.a + offsets.b,
-                hunk.starts.b + offsets.a,
-                hunk.ends.b + offsets.a))
-            offsets += hunk.ends - hunk.starts
-        return tuple(result), offsets
 
     def _make_diff_line(self, draw_state, diff, idx):
         diff_line = ['-'] * draw_state.diff_width

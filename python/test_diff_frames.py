@@ -16,7 +16,7 @@ class TestHunk(TestCase):
 
 class TestNormalisedHunk(TestCase):
     def test_len(self):
-        self.assertEqual(len(NormalisedHunk(1, 5, 1, 10)), 9)
+        self.assertEqual(len(NormalisedHunk(1, 5, 1, 10, 0, 0)), 9)
 
 
 class TestDiffFrames(TestCase):
@@ -38,18 +38,18 @@ class TestDiffFrames(TestCase):
     )
 
     processed_diff = (
-        NormalisedHunk(0, 0, 0, 1000),
-        NormalisedHunk(3000, 6000, 3000, 7000),
-        NormalisedHunk(11000, 12000, 11000, 11000),
+        NormalisedHunk(0, 0, 0, 1000, 0, 0),
+        NormalisedHunk(3000, 6000, 3000, 7000, 1000, 0),
+        NormalisedHunk(11000, 12000, 11000, 11000, 5000, 3000),
     )
     diff_lines = AB(
         '    --------++++++++++++    ----------------++++',
         '++++--------++++++++++++++++----------------    ')
 
-    def test_process_diff(self):
-        self.assertEqual(
-            self.app._process_diff(self.unprocessed_diff),
-            (self.processed_diff, (4000, 5000)))
+    def test_normalise_diff(self):
+        normalised_diff = tuple(
+            NormalisedHunk.process_diff(self.unprocessed_diff))
+        self.assertEqual(normalised_diff, self.processed_diff)
 
     def _diff_line_helper(self, app, expecteds):
         app._len = 12000  # each 1000 frames is 4 characters at 48 width
