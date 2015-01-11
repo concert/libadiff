@@ -63,10 +63,15 @@ class TestDiffFrames(TestCase):
                 self.assertEqual(repr(result), repr(expected))
 
     def test_make_diff_line_plain(self):
-        self._diff_line_helper(self.app, self.diff_lines)
+        # FIXME: hack whilst showing cursor:
+        def hack(expected):
+            return '|' + expected[1:]
+        self._diff_line_helper(self.app, AB.from_map(hack, self.diff_lines))
 
     def test_make_diff_line_colour(self):
         app = DiffApp('some_a', 'some_b')
+        # FIXME: hack whilst showing cursor:
+        app._cursor = -1000
         ins = app._insertion_fmt
         com = app._common_fmt
         expecteds = AB(
@@ -81,6 +86,8 @@ class TestDiffFrames(TestCase):
 
     def test_make_diff_line_zoom(self):
         self.app._zoom = 2.0
+        # FIXME: hack whilst showing cursor:
+        self.app._cursor = -1000
         self._diff_line_helper(
             self.app, AB(*map(self._multiply_up, self.diff_lines)))
 

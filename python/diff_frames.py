@@ -149,6 +149,7 @@ class DiffApp:
         self._start_cue = 0
         self._end_cue = 0
         self._active_cue = None
+        self._cursor = 0
 
         self._draw_state = None
 
@@ -234,6 +235,7 @@ class DiffApp:
             insertion_str[0] = self._insertion_fmt + insertion_str[0]
             insertion_str[-1] += self._common_fmt
             overlay_lists(diff_line, insertion_str, dl_start_idx)
+        overlay_lists(diff_line, '|', draw_state.to_chars(self._cursor))
         duration = draw_state.end_times[idx]
         return self._common_fmt(''.join(diff_line)) + ' ' + duration
 
@@ -309,17 +311,25 @@ class DiffApp:
         self._select_cue_helper('end')
 
     def _move_active_cue_point(self, d):
+        attr_name = '_{}_cue'.format(self._active_cue)
+        setattr(
+            self, attr_name,
+            getattr(self, attr_name) + self._draw_state.to_frames(d))
+
+    def _move_cursor(self, d):
+        self._cursor += self._draw_state.to_frames(d)
+
+    def _on_arrow(self, d):
         if self._active_cue:
-            attr_name = '_{}_cue'.format(self._active_cue)
-            setattr(
-                self, attr_name,
-                getattr(self, attr_name) + self._draw_state.to_frames(d))
+            self._move_active_cue_point(d)
+        else:
+            self._move_cursor(d)
 
     def _on_left(self):
-        self._move_active_cue_point(-1)
+        self._on_arrow(-1)
 
     def _on_right(self):
-        self._move_active_cue_point(1)
+        self._on_arrow(1)
 
 
 def diff(filename_a, filename_b):
