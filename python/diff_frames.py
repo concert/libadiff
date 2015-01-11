@@ -4,6 +4,7 @@ import sys
 import argh
 import asyncio
 import subprocess
+from itertools import chain
 
 import pysndfile
 
@@ -25,6 +26,9 @@ class Hunk:
         return all(
             getattr(self, name) == getattr(other, name) for name in
             self.__slots__)
+
+    def __iter__(self):
+        return chain(*zip(self.starts, self.ends))
 
 
 class NormalisedHunk(Hunk):
