@@ -99,32 +99,32 @@ class TestAB(TestCase):
 
 
 class TestClamped(TestCase):
-    def test_limits(self):
+    def setUp(self):
         clamped = Clamped(2, 4)
-
         class A:
-            attr = clamped
-
+            static = clamped
             def get_min(ins):
                 return ins._min
-
             def get_max(ins):
                 return ins._max
             dynamic = Clamped(get_min, get_max)
+        self.assertIs(A.static, clamped)
+        self.A = A
 
-        self.assertIs(A.attr, clamped)
-
-        a = A()
+    def test_static_limits(self):
+        a = self.A()
         with self.assertRaises(AttributeError):
-            a.attr
+            a.static
 
-        a.attr = 3
-        self.assertEqual(a.attr, 3)
-        a.attr -= 2
-        self.assertEqual(a.attr, 2)
-        a.attr = 72
-        self.assertEqual(a.attr, 4)
+        a.static = 3
+        self.assertEqual(a.static, 3)
+        a.static -= 2
+        self.assertEqual(a.static, 2)
+        a.static = 72
+        self.assertEqual(a.static, 4)
 
+    def test_dynamic_limits(self):
+        a = self.A()
         def check(min_, max_, ok, too_small, too_big):
             a._min = min_
             a._max = max_
@@ -136,3 +136,16 @@ class TestClamped(TestCase):
             self.assertEqual(a.dynamic, max_)
         check('p', 'w', 'q', 'a', 'z')
         check((1, 1), (10, 10), (5, 5), (0, 10), (11, 0))
+
+    def test_unbounded(self):
+        a = self.A()
+        def check(min_, max_, on_minus, on_zero, on_plus):
+            a._min = min_
+            a._max = max_
+            data = (-2, on_minus), (0, on_zero), (2, on_plus)
+            for i, expected in data:
+                a.dynamic = i
+                self.assertEqual(a.dynamic, expected)
+        check(None, None, -2, 0, 2)
+        check(None, 1, -2, 0, 1)
+        check(-1, None, -1, 0, 2)

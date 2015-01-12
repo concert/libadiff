@@ -46,10 +46,20 @@ class Clamped:
         else:
             return getattr(obj, self.identifier)
 
+    @staticmethod
+    def _limit(value, min_, max_):
+        if min_ is None and max_ is None:
+            return value
+        if min_ is None:
+            min_ = min(value, max_)
+        if max_ is None:
+            max_ = max(value, min_)
+        return sorted((value, min_, max_))[1]
+
     def __set__(self, obj, value):
-        setattr(
-            obj, self.identifier,
-            sorted((self.min(obj), value, self.max(obj)))[1])
+        min_ = self.min(obj)
+        max_ = self.max(obj)
+        setattr(obj, self.identifier, self._limit(value, min_, max_))
 
 
 class AB:
