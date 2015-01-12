@@ -274,9 +274,11 @@ class DiffApp:
 
     def _draw(self):
         self._draw_state = ds = _DrawState(self)
+        ds.end_times = AB.from_map(str, self._durations)
         if self._zoom == 1:
-            ds.end_times = AB.from_map(str, self._durations)
+            pass
         else:
+            # FIXME: Show times of each end when zoomed in
             pass
         lines = [
             self._make_diff_line(ds, self._diff, 0),
