@@ -215,8 +215,8 @@ class DiffApp:
             return tuple(
                 Hunk(*map(int, l.split())) for l in stdout.splitlines())
 
-    def _make_diff_line(self, draw_state, diff, idx):
-        diff_line = ['-'] * draw_state.diff_width
+    def _make_diff_repr(self, draw_state, diff, idx):
+        diff_repr = ['-'] * draw_state.diff_width
         for hunk in diff:
             hunk_num_chars = draw_state.to_chars(len(hunk))
             dl_start_idx = draw_state.to_chars(hunk.start)
@@ -225,7 +225,7 @@ class DiffApp:
             # hunk is entirely out of viewport, so don't bother drawing
             if dl_end_idx < 0:
                 continue
-            elif dl_start_idx > len(diff_line):
+            elif dl_start_idx > len(diff_repr):
                 break
 
             frames_inserted = hunk.ends[idx] - hunk.starts[idx]
@@ -234,10 +234,16 @@ class DiffApp:
             insertion_str = list(insertion_str.ljust(hunk_num_chars))
             insertion_str[0] = self._insertion_fmt + insertion_str[0]
             insertion_str[-1] += self._common_fmt
-            overlay_lists(diff_line, insertion_str, dl_start_idx)
-        overlay_lists(diff_line, '|', draw_state.to_chars(self._cursor))
+            overlay_lists(diff_repr, insertion_str, dl_start_idx)
+        diff_repr[0] = self._common_fmt + diff_repr[0]
+        diff_repr[-1] += self._terminal.normal
+        return diff_repr
+
+    def _make_diff_line(self, draw_state, diff, idx):
         duration = draw_state.end_times[idx]
-        return self._common_fmt(''.join(diff_line)) + ' ' + duration
+        diff_repr = self._make_diff_repr(draw_state, diff, idx)
+        overlay_lists(diff_repr, '|', draw_state.to_chars(self._cursor))
+        return ''.join(diff_repr) + ' ' + duration
 
     @property
     def _start_cue_mark(self):

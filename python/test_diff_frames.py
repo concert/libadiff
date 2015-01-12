@@ -54,24 +54,17 @@ class TestDiffFrames(TestCase):
     def _diff_line_helper(self, app, expecteds):
         app._len = 12000  # each 1000 frames is 4 characters at 48 width
         draw_state = _DrawState(app)
-        draw_state.end_times = AB('woo', 'waa')
-        expecteds += AB(' woo', ' waa')
         with patch.object(_DrawState, 'diff_width', 48):
             for i, expected in enumerate(expecteds):
-                result = app._make_diff_line(
-                    draw_state, self.processed_diff, i)
+                result = ''.join(app._make_diff_repr(
+                    draw_state, self.processed_diff, i))
                 self.assertEqual(repr(result), repr(expected))
 
-    def test_make_diff_line_plain(self):
-        # FIXME: hack whilst showing cursor:
-        def hack(expected):
-            return '|' + expected[1:]
-        self._diff_line_helper(self.app, AB.from_map(hack, self.diff_lines))
+    def test_make_diff_repr_plain(self):
+        self._diff_line_helper(self.app, self.diff_lines)
 
     def test_make_diff_line_colour(self):
         app = DiffApp('some_a', 'some_b')
-        # FIXME: hack whilst showing cursor:
-        app._cursor = -1000
         ins = app._insertion_fmt
         com = app._common_fmt
         expecteds = AB(
@@ -86,8 +79,6 @@ class TestDiffFrames(TestCase):
 
     def test_make_diff_line_zoom(self):
         self.app._zoom = 2.0
-        # FIXME: hack whilst showing cursor:
-        self.app._cursor = -1000
         self._diff_line_helper(
             self.app, AB(*map(self._multiply_up, self.diff_lines)))
 
