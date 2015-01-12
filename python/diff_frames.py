@@ -9,7 +9,7 @@ from itertools import chain
 import pysndfile
 
 from terminal import LinePrintingTerminal, Keyboard
-from util import caching_property, overlay_lists, AB, Time
+from util import caching_property, overlay_lists, AB, Time, Clamped
 
 bdiff_frames_path = os.path.join(
     os.path.dirname(__file__), os.pardir, 'diff_frames')
@@ -143,7 +143,7 @@ class DiffApp:
         self._psfs = None
         self._durations = None
         self._diff = None
-        self._len = None
+        self._len = 0
 
         self._zoom = 1.0
         self._start_cue = 0
@@ -170,6 +170,9 @@ class DiffApp:
             'left': self._on_left,
             'right': self._on_right,
         }
+
+    _zoom = Clamped(1.0, None)
+    _cursor = Clamped(0, lambda self: self._len)
 
     def __call__(self):
         self._psfs = AB.from_map(pysndfile.PySndfile, self.filenames)
@@ -286,7 +289,7 @@ class DiffApp:
         self._zoom *= 1.1
 
     def _zoom_out(self):
-        self._zoom = max(1.0, self._zoom / 1.1)
+        self._zoom /= 1.1
 
     def _cue_hunk_helper(self, iterable, predicate):
         self._active_cue = None
