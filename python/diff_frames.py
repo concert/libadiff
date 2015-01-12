@@ -305,6 +305,7 @@ class DiffApp:
             if predicate(hunk):
                 self._start_cue = hunk.start
                 self._end_cue = hunk.end
+                self._cursor = self._start_cue
                 break
 
     def _cue_next_hunk(self):
