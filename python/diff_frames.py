@@ -228,13 +228,13 @@ class DiffApp:
         diff_repr = ['-'] * draw_state.diff_width
         for hunk in diff:
             hunk_num_chars = draw_state.to_chars(len(hunk))
-            dl_start_idx = draw_state.to_chars(hunk.start)
-            dl_end_idx = dl_start_idx + hunk_num_chars
+            dr_start_idx = draw_state.to_chars(hunk.start)
+            dr_end_idx = dr_start_idx + hunk_num_chars
 
             # hunk is entirely out of viewport, so don't bother drawing
-            if dl_end_idx < 0:
+            if dr_end_idx < 0:
                 continue
-            elif dl_start_idx > len(diff_repr):
+            elif dr_start_idx > len(diff_repr):
                 break
 
             frames_inserted = hunk.ends[idx] - hunk.starts[idx]
@@ -247,7 +247,7 @@ class DiffApp:
                 fmt = self._change_fmt
             insertion_str[0] = fmt + insertion_str[0]
             insertion_str[-1] += self._terminal.normal
-            overlay_lists(diff_repr, insertion_str, dl_start_idx)
+            overlay_lists(diff_repr, insertion_str, dr_start_idx)
         return diff_repr
 
     def _make_diff_line(self, draw_state, diff, idx):
