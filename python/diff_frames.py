@@ -169,6 +169,7 @@ class DiffApp:
             ']': self._select_end_cue,
             'left': self._on_left,
             'right': self._on_right,
+            'esc': self._on_esc,
         }
 
     _zoom = Clamped(1.0, None)
@@ -341,6 +342,12 @@ class DiffApp:
 
     def _on_right(self):
         self._on_arrow(1)
+
+    def _on_esc(self):
+        if self._active_cue:
+            self._active_cue = None
+        else:
+            self._cursor = self._start_cue
 
 
 def diff(filename_a, filename_b):
