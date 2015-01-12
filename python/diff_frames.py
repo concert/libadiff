@@ -150,6 +150,7 @@ class DiffApp:
         self._end_cue = 0
         self._active_cue = None
         self._cursor = 0
+        self._status = ''
 
         self._draw_state = None
 
@@ -200,6 +201,7 @@ class DiffApp:
 
     def _handle_input(self):
         key = self._keyboard[self._terminal.infile.read()]
+        self._status = key
         action = self.bindings.get(key, lambda: None)
         action()
         self._draw()
@@ -284,7 +286,8 @@ class DiffApp:
         lines = [
             self._make_diff_line(ds, self._diff, 0),
             self._make_cue_line(ds),
-            self._make_diff_line(ds, self._diff, 1)
+            self._make_diff_line(ds, self._diff, 1),
+            self._status.ljust(self._terminal.width)
         ]
         self._terminal.print_lines(lines)
 
