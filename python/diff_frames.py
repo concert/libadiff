@@ -171,6 +171,8 @@ class DiffApp:
             'left': self._on_left,
             'right': self._on_right,
             'esc': self._on_esc,
+            'home': self._on_home,
+            'end': self._on_end,
         }
 
     _zoom = Clamped(1.0, None)
@@ -345,6 +347,18 @@ class DiffApp:
 
     def _on_right(self):
         self._on_arrow(1)
+
+    def _on_home(self):
+        if self._cursor == self._start_cue:
+            self._cursor = 0
+        else:
+            self._cursor = self._start_cue
+
+    def _on_end(self):
+        if self._cursor == self._end_cue:
+            self._cursor = self._len
+        else:
+            self._cursor = self._end_cue
 
     def _on_esc(self):
         if self._active_cue:
