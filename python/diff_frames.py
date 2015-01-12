@@ -5,6 +5,7 @@ import argh
 import asyncio
 import subprocess
 from itertools import chain
+from math import ceil
 
 import pysndfile
 
@@ -156,8 +157,8 @@ class DiffApp:
 
         self._loop = asyncio.get_event_loop()
         self._terminal = terminal or LinePrintingTerminal()
-        self._common_fmt = self._terminal.yellow
         self._insertion_fmt = self._terminal.green
+        self._change_fmt = self._terminal.yellow
         self._loop.add_reader(self._terminal.infile, self._handle_input)
         self._keyboard = Keyboard()
         self.bindings = {
@@ -237,14 +238,16 @@ class DiffApp:
                 break
 
             frames_inserted = hunk.ends[idx] - hunk.starts[idx]
-            insertion_str = '+' * int(
-                (frames_inserted / len(hunk)) * hunk_num_chars)
+            insertion_str = '+' * int(ceil(
+                (frames_inserted / len(hunk)) * hunk_num_chars))
             insertion_str = list(insertion_str.ljust(hunk_num_chars))
-            insertion_str[0] = self._insertion_fmt + insertion_str[0]
-            insertion_str[-1] += self._common_fmt
+            if hunk.starts.a == hunk.ends.a or hunk.starts.b == hunk.ends.b:
+                fmt = self._insertion_fmt
+            else:
+                fmt = self._change_fmt
+            insertion_str[0] = fmt + insertion_str[0]
+            insertion_str[-1] += self._terminal.normal
             overlay_lists(diff_repr, insertion_str, dl_start_idx)
-        diff_repr[0] = self._common_fmt + diff_repr[0]
-        diff_repr[-1] += self._terminal.normal
         return diff_repr
 
     def _make_diff_line(self, draw_state, diff, idx):
