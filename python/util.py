@@ -4,15 +4,14 @@ from itertools import starmap
 from operator import add, sub, eq
 
 
-def caching_property(method):
+def cache(method):
     attr_name = '_' + method.__name__
-    @property
     @wraps(method)
-    def new_property(self):
+    def new_method(self):
         if not hasattr(self, attr_name):
             setattr(self, attr_name, method(self))
         return getattr(self, attr_name)
-    return new_property
+    return new_method
 
 
 def overlay_lists(base, new, offset):

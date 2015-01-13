@@ -46,7 +46,7 @@ class Hunk:
 
 
 class NormalisedHunk(Hunk):
-    __slots__ = Hunk.__slots__ + ('offsets',)
+    __slots__ = Hunk.__slots__ + ('offsets', '_end')
 
     def __init__(self, start_a, end_a, start_b, end_b, offset_a, offset_b):
         super().__init__(start_a, end_a, start_b, end_b)
@@ -84,6 +84,7 @@ class NormalisedHunk(Hunk):
         return self.starts.a
 
     @property
+    @cache
     def end(self):
         return max(self.ends)
 
@@ -112,7 +113,8 @@ class _DrawState:
         self.start_times = None
         self.end_times = None
 
-    @caching_property
+    @property
+    @cache
     def diff_width(self):
         if self.start_times:
             start_time_width = max(map(len, self.start_times)) + 1
@@ -121,7 +123,8 @@ class _DrawState:
         end_time_width = max(map(len, self.end_times)) + 1
         return self.app._terminal.width - start_time_width - end_time_width
 
-    @caching_property
+    @property
+    @cache
     def chars_per_frame(self):
         return self.app._zoom * self.diff_width / self.app._len
 

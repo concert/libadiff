@@ -49,7 +49,8 @@ class TestUtil(TestCase):
             def __init__(self, return_value):
                 self.return_value = return_value
 
-            @caching_property
+            @property
+            @cache
             def something(instance):
                 self.computed += 1
                 return instance.return_value
