@@ -107,7 +107,6 @@ class TestAB(TestCase):
 
     def test_attr_lookup_and_call(self):
         ab = AB('hello', 'world')
-        print(ab.index)
         self.assertEqual(ab.index('l'), AB(2, 3))
 
 
