@@ -88,10 +88,10 @@ class AB:
         self._data[i] = value
 
     def __getattr__(self, name):
-        return self.from_map(lambda obj: getattr(obj, name), self)
+        return self.map(lambda obj: getattr(obj, name))
 
     def __call__(self, *args, **kwargs):
-        return self.from_map(lambda obj: obj(*args, **kwargs), self)
+        return self.map(lambda obj: obj(*args, **kwargs))
 
     def __add__(self, other):
         return self.__class__(*starmap(add, zip(self, other)))

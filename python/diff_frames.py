@@ -190,8 +190,7 @@ class DiffApp:
 
     def __call__(self):
         self._psfs = AB.from_map(pysndfile.PySndfile, self.filenames)
-        self._durations = AB.from_map(duration, self._psfs)
-        self._durations = AB.from_map(Time.from_seconds, self._durations)
+        self._durations = self._psfs.map(duration).map(Time.from_seconds)
         with self._terminal.unbuffered_input(), (
                 self._terminal.nonblocking_input()), (
                 self._terminal.hidden_cursor()):
@@ -291,7 +290,7 @@ class DiffApp:
 
     def _draw(self):
         self._draw_state = ds = _DrawState(self)
-        ds.end_times = AB.from_map(str, self._durations)
+        ds.end_times = self._durations.map(str)
         diff_lines = self._make_diff_lines(ds, self._diff)
         if self._zoom == 1:
             pass
