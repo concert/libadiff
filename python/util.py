@@ -148,16 +148,31 @@ class FormattedChar:
 
 
 class CharList(list):
-    def _format_index(self, i, name, fmt):
+    def _format_index(self, i, name, fmt, add=False):
         try:
-            setattr(self[i], name, fmt)
+            existing_fmt = getattr(self[i], name)
         except AttributeError:
             self[i] = FormattedChar(self[i], **{name: fmt})
+            existing_fmt = ''
+        else:
+            if add:
+                fmt = existing_fmt + fmt
+            setattr(self[i], name, fmt)
+
+    def prepend_format_index(self, i, fmt):
+        'Add a format before the indexed character'
+        self._format_index(i, 'pre_fmt', fmt, add=True)
 
     def pre_format_index(self, i, fmt):
+        'Replace the format before the indexed character'
         self._format_index(i, 'pre_fmt', fmt)
 
+    def append_format_index(self, i, fmt):
+        'Add a format after the indexed character'
+        self._format_index(i, 'post_fmt', fmt, add=True)
+
     def post_format_index(self, i, fmt):
+        'Replace the format after the indexed character'
         self._format_index(i, 'post_fmt', fmt)
 
     def __str__(self):
