@@ -39,7 +39,7 @@ class Hunk:
     def __eq__(self, other):
         return all(
             getattr(self, name) == getattr(other, name) for name in
-            self.__slots__)
+            self.__slots__ if not name.startswith('_'))
 
     def __iter__(self):
         return chain(*zip(self.starts, self.ends))
