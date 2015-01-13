@@ -60,11 +60,16 @@ class Clamped:
         max_ = self.max(obj)
         setattr(obj, self.identifier, self._limit(value, min_, max_))
 
+UNASSIGNED = object()
+
 
 class AB:
     __slots__ = '_data',
 
-    def __init__(self, a, b):
+    def __init__(self, a, b=UNASSIGNED):
+        'Takes either values for a and b or a value to repeat for both'
+        if b is UNASSIGNED:
+            b = a
         self._data = [a, b]
 
     def __repr__(self):

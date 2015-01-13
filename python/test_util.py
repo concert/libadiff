@@ -69,6 +69,10 @@ class TestUtil(TestCase):
 
 
 class TestAB(TestCase):
+    def test_variable_constructor(self):
+        self.assertEqual(AB(1), AB(1, 1))
+        self.assertRaises(TypeError, AB, 1, 2, 3)
+
     def test_eq(self):
         self.assertEqual(AB(1, 2), AB(1, 2))
         self.assertEqual(AB(1, 2), (1, 2))
