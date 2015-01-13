@@ -10,7 +10,7 @@ from math import ceil
 import pysndfile
 
 from terminal import LinePrintingTerminal, Keyboard
-from util import caching_property, overlay_lists, AB, Time, Clamped
+from util import cache, overlay_lists, AB, Time, Clamped, CharList
 
 bdiff_frames_path = os.path.join(
     os.path.dirname(__file__), os.pardir, 'diff_frames')
@@ -87,6 +87,12 @@ class NormalisedHunk(Hunk):
     @cache
     def end(self):
         return max(self.ends)
+
+    def scale(self, width):
+        inserted_frames = self.ends - self.starts
+        return inserted_frames.map(
+            lambda f: (f / len(self)) * width
+        ).map(ceil).map(int)
 
     def __len__(self):
         return self.end - self.start
@@ -227,37 +233,37 @@ class DiffApp:
             return tuple(
                 Hunk(*map(int, l.split())) for l in stdout.splitlines())
 
-    def _make_diff_repr(self, draw_state, diff, idx):
-        diff_repr = ['-'] * draw_state.diff_width
+    def _make_diff_reprs(self, draw_state, diff):
+        l = '-' * draw_state.diff_width
+        diff_reprs = AB(CharList(l), CharList(l))
         for hunk in diff:
-            hunk_num_chars = draw_state.to_chars(len(hunk))
+            hunk_width = draw_state.to_chars(len(hunk))
             dr_start_idx = draw_state.to_chars(hunk.start)
-            dr_end_idx = dr_start_idx + hunk_num_chars
+            dr_end_idx = dr_start_idx + hunk_width
 
             # hunk is entirely out of viewport, so don't bother drawing
             if dr_end_idx < 0:
                 continue
-            elif dr_start_idx > len(diff_repr):
+            elif dr_start_idx > draw_state.diff_width:
                 break
 
-            frames_inserted = hunk.ends[idx] - hunk.starts[idx]
-            insertion_str = '+' * int(ceil(
-                (frames_inserted / len(hunk)) * hunk_num_chars))
-            insertion_str = list(insertion_str.ljust(hunk_num_chars))
-            if hunk.starts.a == hunk.ends.a or hunk.starts.b == hunk.ends.b:
-                fmt = self._insertion_fmt
-            else:
-                fmt = self._change_fmt
-            insertion_str[0] = fmt + insertion_str[0]
-            insertion_str[-1] += self._terminal.normal
-            overlay_lists(diff_repr, insertion_str, dr_start_idx)
-        return diff_repr
+            hunk_scales = hunk.scale(hunk_width)
+            hunk_lists = hunk_scales.map(lambda hs: '+' * hs).ljust(
+                hunk_width).map(CharList)
+            hunk_lists.pre_format_index(0, self._change_fmt)
+            if any(s < hunk_width for s in hunk_scales):
+                change_threshold = min(hunk_scales)
+                hunk_lists.pre_format_index(
+                    change_threshold, self._insertion_fmt)
+            hunk_lists.post_format_index(hunk_width - 1, self._terminal.normal)
+            for dr, hs in zip(diff_reprs, hunk_lists):
+                overlay_lists(dr, hs, dr_start_idx)
+        return diff_reprs
 
-    def _make_diff_line(self, draw_state, diff, idx):
-        duration = draw_state.end_times[idx]
-        diff_repr = self._make_diff_repr(draw_state, diff, idx)
-        overlay_lists(diff_repr, '|', draw_state.to_chars(self._cursor))
-        return ''.join(diff_repr) + ' ' + duration
+    def _make_diff_lines(self, draw_state, diff):
+        diff_reprs = self._make_diff_reprs(draw_state, diff)
+        diff_reprs.map(overlay_lists, '|', draw_state.to_chars(self._cursor))
+        return diff_reprs.map(str) + AB(' ', ' ') + draw_state.end_times
 
     @property
     def _start_cue_mark(self):
@@ -286,15 +292,16 @@ class DiffApp:
     def _draw(self):
         self._draw_state = ds = _DrawState(self)
         ds.end_times = AB.from_map(str, self._durations)
+        diff_lines = self._make_diff_lines(ds, self._diff)
         if self._zoom == 1:
             pass
         else:
             # FIXME: Show times of each end when zoomed in
             pass
         lines = [
-            self._make_diff_line(ds, self._diff, 0),
+            diff_lines.a,
             self._make_cue_line(ds),
-            self._make_diff_line(ds, self._diff, 1),
+            diff_lines.b,
             self._status.ljust(self._terminal.width)
         ]
         self._terminal.print_lines(lines)
