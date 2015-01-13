@@ -55,9 +55,9 @@ class TestDiffFrames(TestCase):
         app._len = 12000  # each 1000 frames is 4 characters at 48 width
         draw_state = _DrawState(app)
         with patch.object(_DrawState, 'diff_width', 48):
-            for i, expected in enumerate(expecteds):
-                result = ''.join(app._make_diff_repr(
-                    draw_state, self.processed_diff, i))
+            results = app._make_diff_reprs(draw_state, self.processed_diff)
+            results = results.map(str)
+            for result, expected in zip(results, expecteds):
                 self.assertEqual(repr(result), repr(expected))
 
     def test_make_diff_repr_plain(self):
