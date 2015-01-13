@@ -109,6 +109,13 @@ class TestAB(TestCase):
         ab = AB('hello', 'world')
         self.assertEqual(ab.index('l'), AB(2, 3))
 
+    def test_distribute(self):
+        f = lambda x, y: x + y
+        ab = AB(f, f)
+        cd = AB('c', 'd')
+        ef = AB('e', 'f')
+        self.assertEqual(ab.distribute(cd, ef), AB('ce', 'df'))
+
 
 class TestClamped(TestCase):
     def setUp(self):

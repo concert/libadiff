@@ -93,6 +93,16 @@ class AB:
     def __call__(self, *args, **kwargs):
         return self.map(lambda obj: obj(*args, **kwargs))
 
+    def distribute(self, *iterables):
+        '''Like ab(arg1, arg2...), but we distribute the (iterable) arguments to
+        each respective ab:
+          ab[0](arg1[0], arg2[0]...)
+          ab[1](arg1[1], arg2[1]...)
+        '''
+        iterators = tuple(map(iter, iterables))
+        f_on_next_i = lambda f: f(*map(next, iterators))
+        return self.map(f_on_next_i)
+
     def __add__(self, other):
         return self.__class__(*starmap(add, zip(self, other)))
 
