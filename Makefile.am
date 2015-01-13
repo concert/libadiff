@@ -32,6 +32,7 @@ unittest_rabin_LDADD=$(GLIB_LIBS)
 
 unittest_bdiff_CFLAGS=$(GLIB_CFLAGS) -Isrc
 unittest_bdiff_SOURCES = \
+	tests/fake_fetcher.c \
 	tests/unittest_hunk.c \
 	src/hunk.c \
 	tests/unittest_hash_counting_table.c \
@@ -39,6 +40,7 @@ unittest_bdiff_SOURCES = \
 	tests/unittest_chunk.c \
 	src/chunk.c \
 	src/rabin.c \
+	src/bdiff.c \
 	tests/unittest_bdiff.c
 unittest_bdiff_LDADD=$(GLIB_LIBS)
 
