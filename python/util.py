@@ -1,5 +1,5 @@
 from functools import wraps
-from collections import Sequence, namedtuple
+from collections import namedtuple
 from itertools import starmap
 from operator import add, sub, eq
 
