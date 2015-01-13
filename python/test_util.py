@@ -93,6 +93,13 @@ class TestAB(TestCase):
         self.assertEqual(AB.from_map(plus_one, AB(1, 2)), AB(2, 3))
         self.assertRaises(TypeError, AB.from_map, plus_one, (1, 2, 3))
 
+    def test_map(self):
+        times_two = lambda n: n * 2
+        ab = AB(1, 2)
+        self.assertEqual(ab.map(times_two), AB(2, 4))
+        times_m = lambda n, m: n * m
+        self.assertEqual(ab.map(times_m, 3), AB(3, 6))
+
     def test_attr_lookup_and_call(self):
         ab = AB('hello', 'world')
         print(ab.index)

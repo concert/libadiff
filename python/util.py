@@ -104,6 +104,9 @@ class AB:
     def from_map(cls, func, iterable):
         return cls(*map(func, iterable))
 
+    def map(self, func, *args, **kwargs):
+        return self.from_map(lambda i: func(i, *args, **kwargs), self)
+
     def reversed(self):
         return self.__class__(*reversed(self))
 
