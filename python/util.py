@@ -149,6 +149,9 @@ class FormattedChar:
 
 class CharList(list):
     def _format_index(self, i, name, fmt, add=False):
+        if i >= len(self):
+            i = len(self) - 1
+            name = 'post_fmt'
         try:
             existing_fmt = getattr(self[i], name)
         except AttributeError:

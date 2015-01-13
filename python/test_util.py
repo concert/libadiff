@@ -195,6 +195,13 @@ class TestCharList(TestCase):
         self.l.append_format_index(5, ']')
         self.assertEqual(str(self.l), 'hel {l[[o ]]w} orld')
 
+    def test_format_index_out_of_bounds(self):
+        for _ in range(2):
+            self.l.pre_format_index(11, '[')
+            self.assertEqual(str(self.l), 'hello world[')
+        self.l.post_format_index(14, ']')
+        self.assertEqual(str(self.l), 'hello world]')
+
     def test_get_format(self):
         self.assertEqual(self.l.get_format(3), '')
         self.l.pre_format_index(1, '[')
