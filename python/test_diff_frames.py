@@ -64,14 +64,17 @@ class TestDiffFrames(TestCase):
         self._diff_line_helper(self.app, self.diff_lines)
 
     def test_make_diff_line_colour(self):
-        app = DiffApp('some_a', 'some_b')
+        app = DiffApp(
+            'some_a', 'some_b',
+            terminal=LinePrintingTerminal(force_styling=True))
         ins = app._insertion_fmt
-        com = app._common_fmt
+        chg = app._change_fmt
+        com = app._terminal.normal
         expecteds = AB(
-            com('{ins}    {com}--------{ins}++++++++++++    {com}-------------'
-                '---{ins}++++{com}').format(ins=ins, com=com),
-            com('{ins}++++{com}--------{ins}++++++++++++++++{com}-------------'
-                '---{ins}    {com}').format(ins=ins, com=com))
+            ('{ins}    {com}--------{chg}++++++++++++{ins}    {com}--------'
+             '--------{ins}++++{com}'.format(ins=ins, com=com, chg=chg)),
+            ('{ins}++++{com}--------{chg}++++++++++++{ins}++++{com}--------'
+             '--------{ins}    {com}'.format(ins=ins, com=com, chg=chg)))
         self._diff_line_helper(app, expecteds)
 
     def _multiply_up(self, string):
