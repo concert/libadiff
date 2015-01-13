@@ -195,6 +195,13 @@ class TestCharList(TestCase):
         self.l.append_format_index(5, ']')
         self.assertEqual(str(self.l), 'hel {l[[o ]]w} orld')
 
+    def test_get_format(self):
+        self.assertEqual(self.l.get_format(3), '')
+        self.l.pre_format_index(1, '[')
+        self.assertEqual(self.l.get_format(3), '[')
+        self.l.post_format_index(1, ']')
+        self.assertEqual(self.l.get_format(3), ']')
+
     def test_overlay_char_lists(self):
         new_1 = CharList('bob')
         new_1.pre_format_index(1, '[')

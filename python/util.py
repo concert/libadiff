@@ -175,6 +175,13 @@ class CharList(list):
         'Replace the format after the indexed character'
         self._format_index(i, 'post_fmt', fmt)
 
+    def get_format(self, i):
+        'Get the latest format string to be applied to the indexed character'
+        for c in self[i::-1]:
+            if hasattr(c, 'pre_fmt'):
+                return c.post_fmt or c.pre_fmt
+        return ''
+
     def __str__(self):
         return ''.join(map(str, self))
 
