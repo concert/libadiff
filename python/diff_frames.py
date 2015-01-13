@@ -327,11 +327,11 @@ class DiffApp:
 
     def _cue_next_hunk(self):
         self._cue_hunk_helper(
-            self._diff, lambda hunk: hunk.start > self._start_cue)
+            self._diff, lambda hunk: hunk.start > self._cursor)
 
     def _cue_prev_hunk(self):
         self._cue_hunk_helper(
-            reversed(self._diff), lambda hunk: hunk.end < self._end_cue)
+            reversed(self._diff), lambda hunk: hunk.end < self._cursor)
 
     def _select_cue_helper(self, cue_name):
         if self._active_cue == cue_name:
