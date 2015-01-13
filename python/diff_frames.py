@@ -168,6 +168,7 @@ class DiffApp:
         self._terminal = terminal or LinePrintingTerminal()
         self._insertion_fmt = self._terminal.green
         self._change_fmt = self._terminal.yellow
+        self._cursor_fmt = self._terminal.on_bright_black
         self._loop.add_reader(self._terminal.infile, self._handle_input)
         self._keyboard = Keyboard()
         self.bindings = {
@@ -261,7 +262,11 @@ class DiffApp:
 
     def _make_diff_lines(self, draw_state, diff):
         diff_reprs = self._make_diff_reprs(draw_state, diff)
-        diff_reprs.map(overlay_lists, '|', draw_state.to_chars(self._cursor))
+        cursor_pos = draw_state.to_chars(self._cursor)
+        existing_fmts = AB(self._terminal.normal)
+        existing_fmts += diff_reprs.get_format(cursor_pos)
+        diff_reprs.prepend_format_index(cursor_pos, self._cursor_fmt)
+        diff_reprs.post_format_index.distribute(AB(cursor_pos), existing_fmts)
         return diff_reprs.map(str) + AB(' ', ' ') + draw_state.end_times
 
     @property
