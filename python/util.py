@@ -111,6 +111,39 @@ class AB:
         return self.__class__(*reversed(self))
 
 
+class FormattedChar:
+    __slots__ = 'pre_fmt', 'c', 'post_fmt'
+
+    def __init__(self, c, pre_fmt='', post_fmt=''):
+        self.pre_fmt = pre_fmt
+        self.c = c
+        self.post_fmt = post_fmt
+
+    def __str__(self):
+        return self.pre_fmt + self.c + self.post_fmt
+
+    def __repr__(self):
+        return 'c({!r}, {!r}, {!r})'.format(
+            self.c, self.pre_fmt, self.post_fmt)
+
+
+class CharList(list):
+    def _format_index(self, i, name, fmt):
+        try:
+            setattr(self[i], name, fmt)
+        except AttributeError:
+            self[i] = FormattedChar(self[i], **{name: fmt})
+
+    def pre_format_index(self, i, fmt):
+        self._format_index(i, 'pre_fmt', fmt)
+
+    def post_format_index(self, i, fmt):
+        self._format_index(i, 'post_fmt', fmt)
+
+    def __str__(self):
+        return ''.join(map(str, self))
+
+
 class Time(namedtuple('Time', ('hours', 'minutes', 'seconds', 'precision'))):
     '''Handle rounding and pretty formatting of time. Precision has two related
     meanings:

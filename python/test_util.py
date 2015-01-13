@@ -1,6 +1,7 @@
 from unittest import TestCase
 
-from util import overlay_lists, caching_property, AB, Time, Clamped
+from util import (
+    overlay_lists, cache, AB, Time, Clamped, FormattedChar, CharList)
 
 
 class TestUtil(TestCase):
@@ -157,3 +158,33 @@ class TestClamped(TestCase):
         check(None, None, -2, 0, 2)
         check(None, 1, -2, 0, 1)
         check(-1, None, -1, 0, 2)
+
+
+class TestFormattedChar(TestCase):
+    def test_str(self):
+        f = FormattedChar('c', 'pre:', ':post')
+        self.assertEqual(str(f), 'pre:c:post')
+
+
+class TestCharList(TestCase):
+    def setUp(self):
+        self.l = CharList('hello world')
+
+    def test_str(self):
+        self.assertEqual(str(self.l), 'hello world')
+
+    def test_format_index(self):
+        self.l.pre_format_index(4, '[')
+        self.l.post_format_index(5, ']')
+        self.assertEqual(str(self.l), 'hell[o ]world')
+
+    def test_overlay_char_lists(self):
+        new_1 = CharList('bob')
+        new_1.pre_format_index(1, '[')
+        new_1.post_format_index(2, ']')
+        new_2 = CharList('fallen off')
+        new_2.pre_format_index(0, '(')
+        new_2.post_format_index(7, ')')
+        overlay_lists(self.l, new_1, 1)
+        overlay_lists(self.l, new_2, 9)
+        self.assertEqual(str(self.l), 'hb[ob]o wor(fa')
