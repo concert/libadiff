@@ -64,6 +64,11 @@ UNASSIGNED = object()
 
 
 class AB:
+    '''Vector like class to help process multiple related values together.
+    Provides useful functionality like mapped attribute lookups and
+    distributive calling.
+    '''
+
     __slots__ = '_data',
 
     def __init__(self, a, b=UNASSIGNED):
