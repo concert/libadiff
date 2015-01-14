@@ -86,3 +86,6 @@ unittest_adiff
 
 # Test artifacts
 *.trs
+
+# Vim buffer files
+.*.swp
