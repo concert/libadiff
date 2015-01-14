@@ -46,6 +46,7 @@ unittest_bdiff_LDADD=$(GLIB_LIBS)
 
 unittest_adiff_CFLAGS=$(diff_frames_CFLAGS) -Isrc
 unittest_adiff_SOURCES = \
+	tests/fake_fetcher.c \
 	src/hunk.c \
 	src/hash_counting_table.c \
 	src/chunk.c \

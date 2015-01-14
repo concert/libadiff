@@ -3,7 +3,7 @@
 typedef struct {
     GRand * const g_rand;
     unsigned first_length;
-    unsigned const second_length;
+    unsigned second_length;
     unsigned pos;
 } fake_fetcher_data;
 
