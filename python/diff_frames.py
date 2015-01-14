@@ -5,6 +5,7 @@ import argh
 import asyncio
 import subprocess
 from itertools import chain
+from contextlib import contextmanager
 from math import ceil
 
 import pysndfile
@@ -156,6 +157,7 @@ class DiffApp:
         self._len = 0
 
         self._zoom = 1.0
+        self._cues_are_free = True
         self._start_cue = 0
         self._end_cue = 0
         self._active_cue = None
@@ -186,7 +188,31 @@ class DiffApp:
             'end': self._on_end,
         }
 
+    def _start_cue_max(self):
+        if self._cues_are_free:
+            return self._len
+        else:
+            return self._end_cue - self._draw_state.to_frames(1)
+
+    def _end_cue_min(self):
+        if self._cues_are_free:
+            return 0
+        else:
+            return self._start_cue + self._draw_state.to_frames(1)
+
+    @contextmanager
+    def _free_cues(self):
+        '''We normally want to constrain the movement of the cue points so they
+        can't cross, but when updating both together, e.g. when moving hunk, we
+        need to lift the constraint.
+        '''
+        self._cues_are_free = True
+        yield
+        self._cues_are_free = False
+
     _zoom = Clamped(1.0, None)
+    _start_cue = Clamped(0, _start_cue_max)
+    _end_cue = Clamped(_end_cue_min, lambda self: self._len)
     _cursor = Clamped(0, lambda self: self._len)
 
     def __call__(self):
@@ -320,8 +346,9 @@ class DiffApp:
         self._active_cue = None
         for hunk in iterable:
             if predicate(hunk):
-                self._start_cue = hunk.start
-                self._end_cue = hunk.end
+                with self._free_cues():
+                    self._start_cue = hunk.start
+                    self._end_cue = hunk.end
                 self._cursor = self._start_cue
                 break
 
