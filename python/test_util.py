@@ -78,7 +78,11 @@ class TestAB(TestCase):
         self.assertEqual(AB(1, 2), (1, 2))
         self.assertNotEqual(AB(1, 2), AB(3, 4))
         self.assertNotEqual(AB(1, 2), (1, 2, 3))
+
+    def test_add(self):
         self.assertEqual(AB(1, 2) + AB(3, 2), AB(4, 4))
+
+    def test_sub(self):
         self.assertEqual(AB(1, 2) - AB(3, 2), AB(-2, 0))
 
     def test_get_set_item(self):
