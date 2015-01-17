@@ -72,7 +72,7 @@ class AB:
     __slots__ = '_data',
 
     def __init__(self, a, b=UNASSIGNED):
-        'Takes either values for a and b or a value to repeat for both'
+        '''Takes either values for a and b or a value to repeat for both'''
         if b is UNASSIGNED:
             b = a
         self._data = [a, b]
@@ -163,23 +163,24 @@ class CharList(list):
             setattr(self[i], name, fmt)
 
     def prepend_format_index(self, i, fmt):
-        'Add a format before the indexed character'
+        '''Add a format before the indexed character'''
         self._format_index(i, 'pre_fmt', fmt, add=True)
 
     def pre_format_index(self, i, fmt):
-        'Replace the format before the indexed character'
+        '''Replace the format before the indexed character'''
         self._format_index(i, 'pre_fmt', fmt)
 
     def append_format_index(self, i, fmt):
-        'Add a format after the indexed character'
+        '''Add a format after the indexed character'''
         self._format_index(i, 'post_fmt', fmt, add=True)
 
     def post_format_index(self, i, fmt):
-        'Replace the format after the indexed character'
+        '''Replace the format after the indexed character'''
         self._format_index(i, 'post_fmt', fmt)
 
     def get_format(self, i):
-        'Get the latest format string to be applied to the indexed character'
+        '''Get the latest format string to be applied to the indexed character
+        '''
         for c in self[i::-1]:
             if hasattr(c, 'pre_fmt'):
                 return c.post_fmt or c.pre_fmt
