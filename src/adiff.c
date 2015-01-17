@@ -91,34 +91,34 @@ diff adiff(const_str path_a, const_str path_b) {
     return result;
 }
 
-static unsigned short_etcher(
+static unsigned short_writer(
         SNDFILE * const src, unsigned const n_items, char const * buffer) {
     return sf_writef_short(src, (short *) buffer, n_items);
 }
 
-static unsigned float_etcher(
+static unsigned float_writer(
         SNDFILE * const src, unsigned const n_items,
         char const * buffer) {
     return sf_writef_float(src, (float *) buffer, n_items);
 }
 
-typedef unsigned (*data_etcher)(
+typedef unsigned (*data_writer)(
     SNDFILE * const, unsigned const n_items, char const * buffer);
 
 typedef struct {
-    data_etcher const etcher;
+    data_writer const etcher;
     size_t const sample_size;
 } etcher_info;
 
-static etcher_info get_etcher(lsf_wrapped const f) {
+static etcher_info get_writer(lsf_wrapped const f) {
     if (
             ((f.info.format & SF_FORMAT_SUBMASK) == SF_FORMAT_FLOAT) |
             ((f.info.format & SF_FORMAT_SUBMASK) == SF_FORMAT_DOUBLE)) {
         return (etcher_info) {
-            .etcher = float_etcher, .sample_size = sizeof(float)};
+            .etcher = float_writer, .sample_size = sizeof(float)};
     } else {
         return (etcher_info) {
-            .etcher = short_etcher, .sample_size = sizeof(short)};
+            .etcher = short_writer, .sample_size = sizeof(short)};
     }
 }
 
@@ -128,7 +128,7 @@ static void copy_data(
     end--;
     sf_seek(in.file, start, SEEK_SET);  // Should be error checked (-1 rval)
     fetcher_info const fi = get_fetcher(in);
-    etcher_info const ei = get_etcher(in);
+    etcher_info const ei = get_writer(in);
     char buffer[8192];
     unsigned n_items = 8192 / ei.sample_size / in.info.channels;
     while (start < end) {
