@@ -137,7 +137,7 @@ class _DrawState:
 
     def to_chars(self, frames):
         '''Transforms a point in the space of the "virtual" diff space, given in
-        frames, into a x-coordintate on the terminal, taking into account
+        frames, into a x-coordinate on the terminal, taking into account
         various application state parameters.
         '''
         return int(self.chars_per_frame * frames)

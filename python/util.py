@@ -252,6 +252,6 @@ class Time(namedtuple('Time', ('hours', 'minutes', 'seconds', 'precision'))):
 
     def __str__(self):
         '''Formats the given time in seconds to an appropriate or given
-        prescision excluding leading zero components.
+        precision excluding leading zero components.
         '''
         return self._formats[self.precision].format(t=self)
