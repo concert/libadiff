@@ -70,7 +70,7 @@ static diff cmp(const lsf_wrapped a, const lsf_wrapped b) {
             .code = ret_code,
             .hunks = bdiff(
                 fi.sample_size * a.info.channels, fi.fetcher,
-                (void *) &a.file, (void *) &b.file)};
+                (void *) a.file, (void *) b.file)};
     }
     return (diff) {.code = ret_code};
 }
