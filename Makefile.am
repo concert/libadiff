@@ -22,7 +22,7 @@ patch_frames_SOURCES = \
 	src/hash_counting_table.c
 patch_frames_LDADD=$(GLIB_LIBS) $(SNDFILE_LIBS)
 
-check_PROGRAMS = unittest_rabin unittest_bdiff
+check_PROGRAMS = unittest_rabin unittest_bdiff unittest_adiff
 
 unittest_rabin_CFLAGS=$(GLIB_CFLAGS) -Iinclude
 unittest_rabin_SOURCES = \
@@ -43,5 +43,17 @@ unittest_bdiff_SOURCES = \
 	src/bdiff.c \
 	tests/unittest_bdiff.c
 unittest_bdiff_LDADD=$(GLIB_LIBS)
+
+unittest_adiff_CFLAGS=$(diff_frames_CFLAGS) -Isrc
+unittest_adiff_SOURCES = \
+	tests/fake_fetcher.c \
+	src/hunk.c \
+	src/hash_counting_table.c \
+	src/chunk.c \
+	src/rabin.c \
+	src/bdiff.c \
+	src/adiff.c \
+	tests/unittest_adiff.c
+unittest_adiff_LDADD=$(diff_frames_LDADD)
 
 TESTS = $(check_PROGRAMS)

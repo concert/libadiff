@@ -82,6 +82,10 @@ patch_frames
 **/.dirstamp
 unittest_rabin
 unittest_bdiff
+unittest_adiff
 
 # Test artifacts
 *.trs
+
+# Vim buffer files
+.*.swp

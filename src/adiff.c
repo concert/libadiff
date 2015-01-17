@@ -39,7 +39,7 @@ static adiff_return_code info_cmp(const lsf_wrapped a, const lsf_wrapped b) {
 
 static unsigned int_fetcher(void * source, unsigned n_items, char * buffer) {
     lsf_wrapped const * const src = source;
-    return sf_readf_double(src->file, (double *) buffer, n_items);
+    return sf_readf_short(src->file, (short *) buffer, n_items);
 }
 
 static unsigned float_fetcher(void * source, unsigned n_items, char * buffer) {
