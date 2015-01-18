@@ -37,7 +37,8 @@ chunk * chunk_new(
  * \return the head of a linked list of chunks.
  */
 chunks const split_data(
-    unsigned const sample_size, data_fetcher const df, void * const source);
+    unsigned const sample_size, data_fetcher const df, void * const source,
+    unsigned const min_length);
 
 /** \brief Free a linked list of chunks.
  *
