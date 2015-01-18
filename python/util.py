@@ -232,11 +232,12 @@ class Time(namedtuple('Time', ('hours', 'minutes', 'seconds', 'precision'))):
 
     @staticmethod
     def _get_precision(hours, minutes, seconds):
-        if not hours:
-            if not minutes:
-                return 2
+        if hours:
+            return 0
+        elif minutes:
             return 1
-        return 0
+        else:
+            return 2
 
     @staticmethod
     def _overflow(big, small, precision):
