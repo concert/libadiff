@@ -158,7 +158,6 @@ static void diff_assertions(
     g_assert_nonnull(h2);
     g_assert_cmpuint(h2->b.start, <=, b->pos);
     g_assert_cmpuint(h2->a.start + 200, ==, h2->b.start);
-    // Is the 400 something to do with each random number being 2 frames
     g_assert_cmpuint(h2->a.end, ==, a->pos + 1);
     g_assert_cmpuint(h2->b.end, ==, b->pos + 1);
     g_assert_null(h2->next);
