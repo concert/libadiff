@@ -39,7 +39,8 @@ static inline hash hash_sample(
  */
 chunks const split_data(
         unsigned const sample_size, data_fetcher const df,
-        void * const source, unsigned const min_length) {
+        void * const source, unsigned const min_length,
+        unsigned const max_length) {
     char buf[buf_size];
     chunks head = NULL, tail = NULL;
     unsigned samples_read, start_pos = 0, total_samples_read = 0;
@@ -52,7 +53,11 @@ chunks const split_data(
         for (unsigned sample = 0; sample < samples_read; sample++) {
             hash const h = hash_sample(
                 &hd, &wd, sample_size, buf + (sample * sample_size));
-            if ((total_samples_read - start_pos) >= min_length && !(h & 0xFF)) {
+            if (
+                    (
+                        (total_samples_read - start_pos) >= min_length &&
+                        !(h & 0xFF)) ||
+                    (total_samples_read - start_pos) == max_length + 1) {
                 tail = chunk_new(
                     tail, start_pos, total_samples_read, hd.h);
                 start_pos = total_samples_read;

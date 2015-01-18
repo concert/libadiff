@@ -13,11 +13,11 @@ static void test_with_random_data() {
     fake_fetcher_data df = {
         .g_rand = g_rand_new_with_seed(121), .first_length = 400,
         .second_length = 10000};
-    chunks a = split_data(sizeof(guint32), fake_fetcher, &df, 1);
+    chunks a = split_data(sizeof(guint32), fake_fetcher, &df, 1, 20000);
     g_rand_set_seed(df.g_rand, 212);
     df.first_length = 600;
     df.pos = 0;
-    chunks b = split_data(sizeof(guint32), fake_fetcher, &df, 1);
+    chunks b = split_data(sizeof(guint32), fake_fetcher, &df, 1, 20000);
     g_assert_cmphex(a->hash, !=, b->hash);
     g_assert_cmpuint(a->start, ==, 0);
     g_assert_cmpuint(b->start, ==, 0);
@@ -48,17 +48,26 @@ static unsigned immediate_split_fetcher(
 
 static void test_minimum_chunk_length() {
     unsigned total_length = 2;
-    chunks c = split_data(1, immediate_split_fetcher, &total_length, 1);
+    chunks c = split_data(1, immediate_split_fetcher, &total_length, 1, 50);
     g_assert_nonnull(c->next);
     g_assert_cmpuint(c->end, ==, 1);
     chunk_free(c);
     total_length = 2;
-    c = split_data(1, immediate_split_fetcher, &total_length, 2);
+    c = split_data(1, immediate_split_fetcher, &total_length, 2, 50);
     g_assert_null(c->next);
+    chunk_free(c);
+}
+
+static void test_maximum_chunk_length() {
+    unsigned total_length = 6;
+    chunks c = split_data(1, immediate_split_fetcher, &total_length, total_length, 3);
+    g_assert_nonnull(c->next);
+    g_assert_cmpuint(c->end, ==, 4);
     chunk_free(c);
 }
 
 void add_chunk_tests() {
     g_test_add_func("/chunk/random", test_with_random_data);
     g_test_add_func("/chunk/min_length", test_minimum_chunk_length);
+    g_test_add_func("/chunk/max_length", test_maximum_chunk_length);
 }
