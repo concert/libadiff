@@ -17,7 +17,17 @@ chunk * chunk_new(
 static const unsigned buf_size = 16384;
 
 // 2**32 (truncated) + 2**7 + 2**3 + 2**2 + 2**0
-hash const irreducible_polynomial = 141;
+static hash const irreducible_polynomial = 141;
+
+static inline hash hash_sample(
+        hash_data * const hd, window_data * const wd,
+        unsigned const sample_size, char const * const buf) {
+    for (unsigned short b = 0; b < sample_size; b++) {
+        hash_data_update(hd, buf[b]);
+        window_data_update(wd, buf[b]);
+    }
+    return wd->h;
+}
 
 /*! Breaks data into chunks by splitting based on content.
  *
@@ -29,30 +39,27 @@ hash const irreducible_polynomial = 141;
  */
 chunks const split_data(
         unsigned const sample_size, data_fetcher const df,
-        void * const source) {
+        void * const source, unsigned const min_length,
+        unsigned const max_length) {
     char buf[buf_size];
     chunks head = NULL, tail = NULL;
     unsigned samples_read, start_pos = 0, total_samples_read = 0;
-    hash chunk_hash = 0;
     hash_data hd = hash_data_init(irreducible_polynomial);
     unsigned const window_buffer_size = sample_size * 16;
     unsigned char window_buffer[window_buffer_size];
     window_data wd = window_data_init(&hd, window_buffer, window_buffer_size);
     do {
         samples_read = df(source, buf_size / sample_size, buf);
-        unsigned byte_index = 0;
-        for (
-                unsigned max_byte_index = sample_size - 1;
-                max_byte_index < (sample_size * samples_read);
-                max_byte_index += sample_size) {
-            for (; byte_index < max_byte_index; byte_index++) {
-                hash_data_update(&hd, buf[byte_index]);
-                window_data_update(&wd, buf[byte_index]);
-            }
-            chunk_hash = hash_data_update(&hd, buf[byte_index]);
-            if (!(window_data_update(&wd, buf[byte_index]) & 0xFF)) {
+        for (unsigned sample = 0; sample < samples_read; sample++) {
+            hash const h = hash_sample(
+                &hd, &wd, sample_size, buf + (sample * sample_size));
+            if (
+                    (
+                        (total_samples_read - start_pos) >= min_length &&
+                        !(h & 0xFF)) ||
+                    (total_samples_read - start_pos) == max_length + 1) {
                 tail = chunk_new(
-                    tail, start_pos, total_samples_read, chunk_hash);
+                    tail, start_pos, total_samples_read, hd.h);
                 start_pos = total_samples_read;
                 if (head == NULL) {
                     head = tail;
@@ -60,12 +67,11 @@ chunks const split_data(
                 hash_data_reset(&hd);
                 window_data_reset(&wd);
             }
-            byte_index++;
             total_samples_read++;
         }
     } while (samples_read);
     if (total_samples_read > start_pos) {
-        tail = chunk_new(tail, start_pos, total_samples_read + 1, chunk_hash);
+        tail = chunk_new(tail, start_pos, total_samples_read + 1, hd.h);
         if (head == NULL) {
             head = tail;
         }
