@@ -17,7 +17,7 @@ chunk * chunk_new(
 static const unsigned buf_size = 16384;
 
 // 2**32 (truncated) + 2**7 + 2**3 + 2**2 + 2**0
-hash const irreducible_polynomial = 141;
+static hash const irreducible_polynomial = 141;
 
 /*! Breaks data into chunks by splitting based on content.
  *
