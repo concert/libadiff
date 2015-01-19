@@ -125,6 +125,9 @@ static writer_info get_writer(lsf_wrapped const f) {
 static void copy_data(
         lsf_wrapped const in, lsf_wrapped const out, unsigned start,
         unsigned end) {
+    if (end == 0) {
+        return;
+    }
     end--;
     sf_seek(in.file, start, SEEK_SET);  // Should be error checked (-1 rval)
     fetcher_info const fi = get_fetcher(in);
