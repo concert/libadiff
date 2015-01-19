@@ -156,6 +156,8 @@ class DiffApp:
         self._diff = None
         self._len = 0
 
+        self._draw_state = None
+
         self._zoom = 1.0
         self._cues_are_free = True
         self._start_cue = 0
@@ -163,8 +165,6 @@ class DiffApp:
         self._active_cue = None
         self._cursor = 0
         self._status = ''
-
-        self._draw_state = None
 
         self._loop = asyncio.get_event_loop()
         self._terminal = terminal or LinePrintingTerminal()
@@ -200,6 +200,12 @@ class DiffApp:
         else:
             return self._start_cue + self._draw_state.to_frames(1)
 
+    def _cursor_max(self):
+        if self._draw_state:
+            return self._len - self._draw_state.to_frames(1)
+        else:
+            return self._len
+
     @contextmanager
     def _free_cues(self):
         '''We normally want to constrain the movement of the cue points so they
@@ -213,7 +219,7 @@ class DiffApp:
     _zoom = Clamped(1.0, None)
     _start_cue = Clamped(0, _start_cue_max)
     _end_cue = Clamped(_end_cue_min, lambda self: self._len)
-    _cursor = Clamped(0, lambda self: self._len)
+    _cursor = Clamped(0, _cursor_max)
 
     def __call__(self):
         self._psfs = AB.from_map(pysndfile.PySndfile, self.filenames)
