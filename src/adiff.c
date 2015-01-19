@@ -141,7 +141,7 @@ static void copy_data(
 }
 
 static apatch_return_code apply_patch(
-        hunk * h, lsf_wrapped const a, lsf_wrapped const b,
+        hunk const * h, lsf_wrapped const a, lsf_wrapped const b,
         lsf_wrapped const o) {
     unsigned prev_hunk_end = 0;
     for (; h != NULL; h = h->next) {
@@ -154,7 +154,8 @@ static apatch_return_code apply_patch(
 }
 
 apatch_return_code apatch(
-        hunk * hunks, const_str path_a, const_str path_b, const_str out_path) {
+        hunk const * hunks, const_str path_a, const_str path_b,
+        const_str out_path) {
     apatch_return_code retcode;
     lsf_wrapped const a = sndfile_open(path_a);
     if (a.file != NULL) {

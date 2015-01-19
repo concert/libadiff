@@ -44,7 +44,7 @@ diff adiff(char const * const a_path, char const * const b_path);
  * \return A code describing the success or otherwise of the patch.
  */
 apatch_return_code apatch(
-    hunk * hunks, char const * const a_path, char const * const b_path,
+    hunk const * hunks, char const * const a_path, char const * const b_path,
     char const * const out_path);
 
 /** \brief Free a diff (as returned by adiff).
