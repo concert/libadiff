@@ -13,7 +13,7 @@ typedef enum {
     ADIFF_ERR_SAMPLE_FORMAT,
 } adiff_return_code;
 
-/** \brief Codes for errors that may be encountered wihlst patching.
+/** \brief Codes for errors that may be encountered whilst patching.
  */
 typedef enum {
     APATCH_OK = 0,

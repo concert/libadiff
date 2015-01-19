@@ -106,19 +106,19 @@ typedef unsigned (*data_writer)(
     SNDFILE * const, unsigned const n_items, char const * buffer);
 
 typedef struct {
-    data_writer const etcher;
+    data_writer const writer;
     size_t const sample_size;
-} etcher_info;
+} writer_info;
 
-static etcher_info get_writer(lsf_wrapped const f) {
+static writer_info get_writer(lsf_wrapped const f) {
     if (
             ((f.info.format & SF_FORMAT_SUBMASK) == SF_FORMAT_FLOAT) |
             ((f.info.format & SF_FORMAT_SUBMASK) == SF_FORMAT_DOUBLE)) {
-        return (etcher_info) {
-            .etcher = float_writer, .sample_size = sizeof(float)};
+        return (writer_info) {
+            .writer = float_writer, .sample_size = sizeof(float)};
     } else {
-        return (etcher_info) {
-            .etcher = short_writer, .sample_size = sizeof(short)};
+        return (writer_info) {
+            .writer = short_writer, .sample_size = sizeof(short)};
     }
 }
 
@@ -128,14 +128,14 @@ static void copy_data(
     end--;
     sf_seek(in.file, start, SEEK_SET);  // Should be error checked (-1 rval)
     fetcher_info const fi = get_fetcher(in);
-    etcher_info const ei = get_writer(in);
+    writer_info const ei = get_writer(in);
     char buffer[8192];
     unsigned n_items = 8192 / ei.sample_size / in.info.channels;
     while (start < end) {
         if ((end - start) < n_items)
             n_items = (end - start) + 1;
         const unsigned n_read = fi.fetcher(in.file, n_items, buffer);
-        ei.etcher(out.file, n_read, buffer);  // Possible write failure
+        ei.writer(out.file, n_read, buffer);  // Possible write failure
         start += n_read;
     }
 }
