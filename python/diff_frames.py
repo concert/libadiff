@@ -140,7 +140,7 @@ class _DrawState:
         frames, into a x-coordinate on the terminal, taking into account
         various application state parameters.
         '''
-        return int(self.chars_per_frame * frames)
+        return int(ceil(self.chars_per_frame * frames))
 
     def to_frames(self, chars):
         '''The inverse of to_chars()
