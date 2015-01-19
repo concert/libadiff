@@ -163,10 +163,24 @@ static void diff_assertions(
     g_assert_null(h2->next);
 }
 
+static void test_patch(
+        hunk const * const h, char const * const temp_dir,
+        char const * const a, char const * const b) {
+    char * patch_outfile = g_build_filename(temp_dir, "patch_result", NULL);
+    g_assert_cmpint(APATCH_OK, ==, apatch(h, a, b, patch_outfile));
+    diff d = adiff(b, patch_outfile);
+    g_assert_cmpint(d.code, ==, ADIFF_OK);
+    g_assert_null(d.hunks);
+    diff_free(&d);
+    remove(patch_outfile);
+    g_free(patch_outfile);
+}
+
 static void test_short(gconstpointer ud) {
     adiff_fixture const * const f = ud;
     diff d = adiff(f->short0, f->short1);
     diff_assertions(&d, &f->short0_ffd, &f->short1_ffd);
+    test_patch(d.hunks, f->temp_dir, f->short0, f->short1);
     diff_free(&d);
 }
 
@@ -174,6 +188,7 @@ static void test_float(gconstpointer ud) {
     adiff_fixture const * const f = ud;
     diff d = adiff(f->float0, f->float1);
     diff_assertions(&d, &f->float0_ffd, &f->float1_ffd);
+    test_patch(d.hunks, f->temp_dir, f->float0, f->float1);
     diff_free(&d);
 }
 
