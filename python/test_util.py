@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from util import (
-    overlay_lists, cache, AB, Time, Clamped, FormattedChar, CharList)
+    overlay_lists, cache, AB, Time, Clamped, FormattedList)
 
 
 class TestUtil(TestCase):
@@ -174,52 +174,71 @@ class TestClamped(TestCase):
         check(-1, None, -1, 0, 2)
 
 
-class TestFormattedChar(TestCase):
-    def test_str(self):
-        f = FormattedChar('c', 'pre:', ':post')
-        self.assertEqual(str(f), 'pre:c:post')
-
-
-class TestCharList(TestCase):
+class TestFormattedList(TestCase):
     def setUp(self):
-        self.l = CharList('hello world')
+        self.f = FormattedList('hello world', ']')
 
-    def test_str(self):
-        self.assertEqual(str(self.l), 'hello world')
+    def check(self, expected):
+        self.assertEqual(str(self.f), expected)
 
-    def test_format_index(self):
-        for _ in range(2):
-            self.l.pre_format_index(4, '[')
-            self.l.post_format_index(5, ']')
-            self.assertEqual(str(self.l), 'hell[o ]world')
-        self.l.prepend_format_index(3, ' {')
-        self.l.append_format_index(6, '} ')
-        self.assertEqual(str(self.l), 'hel {l[o ]w} orld')
-        self.l.prepend_format_index(4, '[')
-        self.l.append_format_index(5, ']')
-        self.assertEqual(str(self.l), 'hel {l[[o ]]w} orld')
+    def test_basic_string(self):
+        self.check('hello world')
 
-    def test_format_index_out_of_bounds(self):
-        for _ in range(2):
-            self.l.pre_format_index(11, '[')
-            self.assertEqual(str(self.l), 'hello world[')
-        self.l.post_format_index(14, ']')
-        self.assertEqual(str(self.l), 'hello world]')
+    def test_nested_format(self):
+        self.f.format(1, 6, '[')
+        self.check('h[ello ]world')
+        self.f.format(2, 5, '(')
+        self.check('h[e(llo][ ]world')
 
-    def test_get_format(self):
-        self.assertEqual(self.l.get_format(3), '')
-        self.l.pre_format_index(1, '[')
-        self.assertEqual(self.l.get_format(3), '[')
-        self.l.post_format_index(1, ']')
-        self.assertEqual(self.l.get_format(3), ']')
+    def test_overlapping_formats(self):
+        self.f.format(1, 6, '[')
+        self.f.format(2, 8, '(')
+        self.assertEqual(str(self.f), 'h[e(llo ](wo]rld')
 
-    def test_overlay_char_lists(self):
-        new_1 = CharList('bob')
-        new_1.pre_format_index(1, '[')
-        new_1.post_format_index(2, ']')
-        new_2 = CharList('fallen off')
-        new_2.pre_format_index(0, '(')
-        new_2.post_format_index(7, ')')
-        overlay_lists(self.l, new_1, 1)
-        overlay_lists(self.l, new_2, 9)
-        self.assertEqual(str(self.l), 'hb[ob]o wor(fa')
+    def test_len_format(self):
+        self.f.format(0, len(self.f), '[')
+        self.check('[hello world]')
+
+    def test_out_of_range_format(self):
+        self.assertRaisesRegex(IndexError, 'Start', self.f.format, -1, 2, '')
+        self.assertRaisesRegex(IndexError, 'End', self.f.format, 0, 12, '')
+        self.assertRaisesRegex(IndexError, 'End', self.f.format, 6, 5, '')
+
+    def overlay_helper(self):
+        self.f.format(1, 6, '[')
+        new = FormattedList('bob', '}')
+        new.format(1, 2, '{')
+        return new
+
+    def test_overlay(self):
+        new = self.overlay_helper()
+        overlay_lists(self.f, new, 2)
+        self.check('h[eb{o][b ]world')
+
+    def test_overlay_replaces_format(self):
+        new = self.overlay_helper()
+        overlay_lists(self.f, new, 1)
+        self.check('hb{o]bo world')
+
+    def test_overlay_long_new(self):
+        new = self.overlay_helper()
+        overlay_lists(self.f, new, 9)
+        self.check('h[ello ]worb{o]')
+
+    def test_delitem(self):
+        self.f.format(1, 6, '[')
+        del self.f[0]
+        self.check('[ello ]world')
+        del self.f[2]
+        self.check('[elo ]world')
+        del self.f[0]
+        self.check('[lo ]world')
+
+    def test_insert(self):
+        self.f.format(1, 6, '[')
+        self.f.insert(3, 'p')
+        self.check('h[elplo ]world')
+        self.f.insert(0, 'j')
+        self.check('jh[elplo ]world')
+        self.f.insert(10, 'w')
+        self.check('jh[elplo ]wowrld')

@@ -11,7 +11,7 @@ from math import ceil
 import pysndfile
 
 from terminal import LinePrintingTerminal, Keyboard
-from util import cache, overlay_lists, AB, Time, Clamped, CharList
+from util import cache, overlay_lists, AB, Time, Clamped, FormattedList
 
 bdiff_frames_path = os.path.join(
     os.path.dirname(__file__), os.pardir, 'diff_frames')
@@ -259,9 +259,12 @@ class DiffApp:
             return tuple(
                 Hunk(*map(int, l.split())) for l in stdout.splitlines())
 
+    def _make_formatted_list(self, string):
+        return FormattedList(string, self._terminal.normal)
+
     def _make_diff_reprs(self, draw_state, diff):
-        l = '-' * draw_state.diff_width
-        diff_reprs = AB(CharList(l), CharList(l))
+        l = lambda: self._make_formatted_list('-' * draw_state.diff_width)
+        diff_reprs = AB(l(), l())
         for hunk in diff:
             hunk_width = draw_state.to_chars(len(hunk))
             dr_start_idx = draw_state.to_chars(hunk.start)
@@ -275,13 +278,14 @@ class DiffApp:
 
             hunk_scales = hunk.scale(hunk_width)
             hunk_lists = hunk_scales.map(lambda hs: '+' * hs).ljust(
-                hunk_width).map(CharList)
-            hunk_lists.pre_format_index(0, self._change_fmt)
+                hunk_width).map(self._make_formatted_list)
             if any(s < hunk_width for s in hunk_scales):
                 change_threshold = min(hunk_scales)
-                hunk_lists.pre_format_index(
-                    change_threshold, self._insertion_fmt)
-            hunk_lists.post_format_index(hunk_width - 1, self._terminal.normal)
+                hunk_lists.format(0, change_threshold, self._change_fmt)
+                hunk_lists.format(
+                    change_threshold, hunk_width, self._insertion_fmt)
+            else:
+                hunk_lists.format(0, hunk_width, self._change_fmt)
             for dr, hs in zip(diff_reprs, hunk_lists):
                 overlay_lists(dr, hs, dr_start_idx)
         return diff_reprs
@@ -289,10 +293,7 @@ class DiffApp:
     def _make_diff_lines(self, draw_state, diff):
         diff_reprs = self._make_diff_reprs(draw_state, diff)
         cursor_pos = draw_state.to_chars(self._cursor)
-        existing_fmts = AB(self._terminal.normal)
-        existing_fmts += diff_reprs.get_format(cursor_pos)
-        diff_reprs.prepend_format_index(cursor_pos, self._cursor_fmt)
-        diff_reprs.post_format_index.distribute(AB(cursor_pos), existing_fmts)
+        diff_reprs.format(cursor_pos, cursor_pos + 1, self._cursor_fmt)
         return diff_reprs.map(str) + AB(' ', ' ') + draw_state.end_times
 
     @property
