@@ -122,7 +122,10 @@ class AB:
 
     @classmethod
     def from_map(cls, func, iterable):
-        return cls(*map(func, iterable))
+        # Caution: http://bugs.python.org/issue4806 can give odd results if you
+        # just plough the map into cls():
+        args = tuple(map(func, iterable))
+        return cls(*args)
 
     def map(self, func, *args, **kwargs):
         return self.from_map(lambda i: func(i, *args, **kwargs), self)
