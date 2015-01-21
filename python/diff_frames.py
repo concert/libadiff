@@ -113,7 +113,8 @@ class _DrawState:
     call.
     '''
     __slots__ = (
-        'app', '_diff_width', '_chars_per_frame', 'start_times', 'end_times')
+        'app', '_diff_width', '_chars_per_frame', '_cursor_pos', 'start_times',
+        'end_times')
 
     def __init__(self, app):
         self.app = app
@@ -147,6 +148,11 @@ class _DrawState:
         '''
         return int(chars / self.chars_per_frame)
 
+    @property
+    @cache
+    def cursor_pos(self):
+        return self.to_chars(self.app._cursor)
+
 
 class DiffApp:
     def __init__(self, filename_a, filename_b, terminal=None):
@@ -162,6 +168,7 @@ class DiffApp:
         self._cues_are_free = True
         self._start_cue = 0
         self._end_cue = 0
+        self._active_stream = 1
         self._cursor = 0
         self._status = ''
 
@@ -169,7 +176,9 @@ class DiffApp:
         self._terminal = terminal or LinePrintingTerminal()
         self._insertion_fmt = self._terminal.green
         self._change_fmt = self._terminal.yellow
-        self._cursor_fmt = self._terminal.on_bright_black
+        self._inactive_cursor_fmt = self._terminal.on_bright_black
+        self._active_cursor_fmt = (
+            self._inactive_cursor_fmt + self._terminal.reverse)
         self._loop.add_reader(self._terminal.infile, self._handle_input)
         self._keyboard = Keyboard()
         self.bindings = {
@@ -180,6 +189,8 @@ class DiffApp:
             'shift tab': self._cue_prev_hunk,
             '[': self._set_start_cue,
             ']': self._set_end_cue,
+            'up': self._on_up,
+            'down': self._on_down,
             'left': self._on_left,
             'right': self._on_right,
             'esc': self._on_esc,
@@ -219,6 +230,7 @@ class DiffApp:
     _start_cue = Clamped(0, _start_cue_max)
     _end_cue = Clamped(_end_cue_min, lambda self: self._len)
     _cursor = Clamped(0, _cursor_max)
+    _active_stream = Clamped(0, lambda self: len(self.filenames) - 1)
 
     def __call__(self):
         self._psfs = AB.from_map(pysndfile.PySndfile, self.filenames)
@@ -297,19 +309,24 @@ class DiffApp:
 
     def _make_diff_lines(self, draw_state, diff):
         diff_reprs = self._make_diff_reprs(draw_state, diff)
-        cursor_pos = draw_state.to_chars(self._cursor)
-        diff_reprs.format(cursor_pos, cursor_pos + 1, self._cursor_fmt)
+        for i, diff_repr in enumerate(diff_reprs):
+            if i == self._active_stream:
+                fmt = self._active_cursor_fmt
+            else:
+                fmt = self._inactive_cursor_fmt
+            diff_repr.format(
+                draw_state.cursor_pos, draw_state.cursor_pos + 1, fmt)
         return diff_reprs.map(str) + AB(' ', ' ') + draw_state.end_times
 
     def _make_cue_line(self, draw_state):
-        cue_line = [' '] * draw_state.diff_width
-        overlay_lists(
-            cue_line, ['['],
-            draw_state.to_chars(self._start_cue))
-        overlay_lists(
-            cue_line, [']'],
-            draw_state.to_chars(self._end_cue))
-        return ''.join(cue_line)
+        cue_line = self._make_formatted_list(' ' * draw_state.diff_width)
+        cue_line[draw_state.to_chars(self._start_cue)] = (), '['
+        cue_line[draw_state.to_chars(self._end_cue)] = (), ']'
+        cursor_pos = draw_state.to_chars(self._cursor)
+        cue_line.format(
+            draw_state.cursor_pos, draw_state.cursor_pos + 1,
+            self._inactive_cursor_fmt)
+        return str(cue_line)
 
     def _draw(self):
         self._draw_state = ds = _DrawState(self)
@@ -359,6 +376,12 @@ class DiffApp:
 
     def _move_cursor(self, d):
         self._cursor += self._draw_state.to_frames(d)
+
+    def _on_up(self):
+        self._active_stream -= 1
+
+    def _on_down(self):
+        self._active_stream += 1
 
     def _on_left(self):
         self._move_cursor(-1)
