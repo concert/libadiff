@@ -47,11 +47,12 @@ class Hunk:
 
 
 class NormalisedHunk(Hunk):
-    __slots__ = Hunk.__slots__ + ('offsets', '_end')
+    __slots__ = Hunk.__slots__ + ('offsets', '_end', 'active')
 
     def __init__(self, start_a, end_a, start_b, end_b, offset_a, offset_b):
         super().__init__(start_a, end_a, start_b, end_b)
         self.offsets = AB(offset_a, offset_b)
+        self.active = 1
 
     @classmethod
     def from_hunk(cls, hunk, offsets):
@@ -179,6 +180,7 @@ class DiffApp:
         self._inactive_cursor_fmt = self._terminal.on_bright_black
         self._active_cursor_fmt = (
             self._inactive_cursor_fmt + self._terminal.reverse)
+        self._active_hunk_fmt = self._terminal.underline
         self._loop.add_reader(self._terminal.infile, self._handle_input)
         self._keyboard = Keyboard()
         self.bindings = {
@@ -196,6 +198,7 @@ class DiffApp:
             'esc': self._on_esc,
             'home': self._on_home,
             'end': self._on_end,
+            'return': self._select_hunk,
         }
 
     def _start_cue_max(self):
@@ -303,6 +306,8 @@ class DiffApp:
                     change_threshold, hunk_width, self._insertion_fmt)
             else:
                 hunk_lists.format(0, hunk_width, self._change_fmt)
+            hunk_lists[hunk.active].format(
+                0, hunk_width, self._active_hunk_fmt)
             for dr, hs in zip(diff_reprs, hunk_lists):
                 overlay_lists(dr, hs, dr_start_idx)
         return diff_reprs
@@ -403,6 +408,11 @@ class DiffApp:
 
     def _on_esc(self):
         self._cursor = self._start_cue
+
+    def _select_hunk(self):
+        for hunk in self._diff:
+            if hunk.start <= self._cursor <= hunk.end:
+                hunk.active = self._active_stream
 
 
 def diff(filename_a, filename_b):
