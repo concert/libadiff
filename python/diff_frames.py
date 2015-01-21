@@ -162,7 +162,6 @@ class DiffApp:
         self._cues_are_free = True
         self._start_cue = 0
         self._end_cue = 0
-        self._active_cue = None
         self._cursor = 0
         self._status = ''
 
@@ -179,8 +178,8 @@ class DiffApp:
             '-': self._zoom_out,
             'ctrl i': self._cue_next_hunk,  # Tab, apparently
             'shift tab': self._cue_prev_hunk,
-            '[': self._select_start_cue,
-            ']': self._select_end_cue,
+            '[': self._set_start_cue,
+            ']': self._set_end_cue,
             'left': self._on_left,
             'right': self._on_right,
             'esc': self._on_esc,
@@ -302,27 +301,13 @@ class DiffApp:
         diff_reprs.format(cursor_pos, cursor_pos + 1, self._cursor_fmt)
         return diff_reprs.map(str) + AB(' ', ' ') + draw_state.end_times
 
-    @property
-    def _start_cue_mark(self):
-        if self._active_cue == 'start':
-            return self._terminal.reverse('[')
-        else:
-            return '['
-
-    @property
-    def _end_cue_mark(self):
-        if self._active_cue == 'end':
-            return self._terminal.reverse(']')
-        else:
-            return ']'
-
     def _make_cue_line(self, draw_state):
         cue_line = [' '] * draw_state.diff_width
         overlay_lists(
-            cue_line, [self._start_cue_mark],
+            cue_line, ['['],
             draw_state.to_chars(self._start_cue))
         overlay_lists(
-            cue_line, [self._end_cue_mark],
+            cue_line, [']'],
             draw_state.to_chars(self._end_cue))
         return ''.join(cue_line)
 
@@ -350,7 +335,6 @@ class DiffApp:
         self._zoom /= 1.1
 
     def _cue_hunk_helper(self, iterable, predicate):
-        self._active_cue = None
         for hunk in iterable:
             if predicate(hunk):
                 with self._free_cues():
@@ -367,38 +351,20 @@ class DiffApp:
         self._cue_hunk_helper(
             reversed(self._diff), lambda hunk: hunk.end < self._cursor)
 
-    def _select_cue_helper(self, cue_name):
-        if self._active_cue == cue_name:
-            self._active_cue = None
-        else:
-            self._active_cue = cue_name
+    def _set_start_cue(self):
+        self._start_cue = self._cursor
 
-    def _select_start_cue(self):
-        self._select_cue_helper('start')
-
-    def _select_end_cue(self):
-        self._select_cue_helper('end')
-
-    def _move_active_cue_point(self, d):
-        attr_name = '_{}_cue'.format(self._active_cue)
-        setattr(
-            self, attr_name,
-            getattr(self, attr_name) + self._draw_state.to_frames(d))
+    def _set_end_cue(self):
+        self._end_cue = self._cursor
 
     def _move_cursor(self, d):
         self._cursor += self._draw_state.to_frames(d)
 
-    def _on_arrow(self, d):
-        if self._active_cue:
-            self._move_active_cue_point(d)
-        else:
-            self._move_cursor(d)
-
     def _on_left(self):
-        self._on_arrow(-1)
+        self._move_cursor(-1)
 
     def _on_right(self):
-        self._on_arrow(1)
+        self._move_cursor(1)
 
     def _on_home(self):
         if self._cursor == self._start_cue:
@@ -413,10 +379,7 @@ class DiffApp:
             self._cursor = self._end_cue
 
     def _on_esc(self):
-        if self._active_cue:
-            self._active_cue = None
-        else:
-            self._cursor = self._start_cue
+        self._cursor = self._start_cue
 
 
 def diff(filename_a, filename_b):
