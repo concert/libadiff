@@ -49,6 +49,10 @@ static unsigned float_fetcher(void * source, unsigned n_items, char * buffer) {
     return sf_readf_float((SNDFILE * const) source, (float *) buffer, n_items);
 }
 
+static unsigned double_fetcher(void * source, unsigned n_items, char * buffer) {
+    return sf_readf_double((SNDFILE * const) source, (double *) buffer, n_items);
+}
+
 typedef struct {
     data_fetcher const fetcher;
     const size_t sample_size;
@@ -66,10 +70,12 @@ static fetcher_info get_fetcher(lsf_wrapped const f) {
             return (fetcher_info) {
                 .fetcher = int_fetcher, .sample_size = sizeof(int)};
         case SF_FORMAT_FLOAT:
+            return (fetcher_info) {
+                .fetcher = float_fetcher, .sample_size = sizeof(float)};
         case SF_FORMAT_DOUBLE:
         default:
             return (fetcher_info) {
-                .fetcher = float_fetcher, .sample_size = sizeof(float)};
+                .fetcher = double_fetcher, .sample_size = sizeof(double)};
     }
 }
 
@@ -113,9 +119,13 @@ static unsigned int_writer(
 }
 
 static unsigned float_writer(
-        SNDFILE * const src, unsigned const n_items,
-        char const * buffer) {
+        SNDFILE * const src, unsigned const n_items, char const * buffer) {
     return sf_writef_float(src, (float *) buffer, n_items);
+}
+
+static unsigned double_writer(
+        SNDFILE * const src, unsigned const n_items, char const * buffer) {
+    return sf_writef_double(src, (double *) buffer, n_items);
 }
 
 typedef unsigned (*data_writer)(
@@ -138,10 +148,12 @@ static writer_info get_writer(lsf_wrapped const f) {
             return (writer_info) {
                 .writer = int_writer, .sample_size = sizeof(int)};
         case SF_FORMAT_FLOAT:
+            return (writer_info) {
+                .writer = float_writer, .sample_size = sizeof(float)};
         case SF_FORMAT_DOUBLE:
         default:
             return (writer_info) {
-                .writer = float_writer, .sample_size = sizeof(float)};
+                .writer = double_writer, .sample_size = sizeof(double)};
     }
 }
 
