@@ -18,18 +18,14 @@ typedef struct {
     char * const missing;
     char * const alt_sample_rate;
     char * const short0;
-    file_content_desc short0_fcd;
+    file_content_desc fcd0;
     char * const short1;
-    file_content_desc short1_fcd;
+    file_content_desc fcd1;
     char * const short_stereo0;
     char * const int0;
-    file_content_desc int0_fcd;
     char * const int1;
-    file_content_desc int1_fcd;
     char * const float0;
-    file_content_desc float0_fcd;
     char * const float1;
-    file_content_desc float1_fcd;
 } adiff_fixture;
 
 static void create_sndfile(
@@ -37,6 +33,7 @@ static void create_sndfile(
         file_content_desc * const fcd) {
     SNDFILE * f = sf_open(path, SFM_WRITE, &info);
     if (fcd != NULL) {
+        fcd->pos = 0;
         fcd->g_rand = g_rand_new_with_seed(fcd->seed);
         int buffer[1024];
         unsigned n_read = fake_fetcher(&fcd->ffd, 1024, (char*) buffer);
@@ -57,24 +54,16 @@ static adiff_fixture create_fixture() {
         .missing = g_build_filename(temp_dir, "missing", NULL),
         .alt_sample_rate = g_build_filename(temp_dir, "48khz", NULL),
         .short0 = g_build_filename(temp_dir, "short0", NULL),
-        .short0_fcd = (file_content_desc) {
+        .fcd0 = (file_content_desc) {
             .seed = 92, .first_length = 500, .second_length = 19000},
         .short1 = g_build_filename(temp_dir, "short1", NULL),
-        .short1_fcd = (file_content_desc) {
+        .fcd1 = (file_content_desc) {
             .seed = 346, .first_length = 700, .second_length = 17000},
         .int0 = g_build_filename(temp_dir, "int0", NULL),
-        .int0_fcd = (file_content_desc) {
-            .seed = 92, .first_length = 500, .second_length = 19000},
         .int1 = g_build_filename(temp_dir, "int1", NULL),
-        .int1_fcd = (file_content_desc) {
-            .seed = 346, .first_length = 700, .second_length = 17000},
         .short_stereo0 = g_build_filename(temp_dir, "short_stereo0", NULL),
         .float0 = g_build_filename(temp_dir, "float0", NULL),
-        .float0_fcd = (file_content_desc) {
-            .seed = 92, .first_length = 500, .second_length = 19000},
         .float1 = g_build_filename(temp_dir, "float1", NULL),
-        .float1_fcd = (file_content_desc) {
-            .seed = 346, .first_length = 700, .second_length = 17000},
         };
     create_sndfile(
         fixture.alt_sample_rate,
@@ -87,25 +76,25 @@ static adiff_fixture create_fixture() {
         (SF_INFO) {
             .channels = 1, .samplerate = 44100,
             .format = SF_FORMAT_WAV | SF_FORMAT_PCM_16},
-        &fixture.short0_fcd);
+        &fixture.fcd0);
     create_sndfile(
         fixture.short1,
         (SF_INFO) {
             .channels = 1, .samplerate = 44100,
             .format = SF_FORMAT_WAV | SF_FORMAT_PCM_16},
-        &fixture.short1_fcd);
+        &fixture.fcd1);
     create_sndfile(
         fixture.int0,
         (SF_INFO) {
             .channels = 1, .samplerate = 44100,
             .format = SF_FORMAT_WAV | SF_FORMAT_PCM_32},
-        &fixture.int0_fcd);
+        &fixture.fcd0);
     create_sndfile(
         fixture.int1,
         (SF_INFO) {
             .channels = 1, .samplerate = 44100,
             .format = SF_FORMAT_WAV | SF_FORMAT_PCM_32},
-        &fixture.int1_fcd);
+        &fixture.fcd1);
     create_sndfile(
         fixture.short_stereo0,
         (SF_INFO) {
@@ -117,13 +106,13 @@ static adiff_fixture create_fixture() {
         (SF_INFO) {
             .channels = 1, .samplerate = 44100,
             .format = SF_FORMAT_WAV | SF_FORMAT_FLOAT},
-        &fixture.float0_fcd);
+        &fixture.fcd0);
     create_sndfile(
         fixture.float1,
         (SF_INFO) {
             .channels = 1, .samplerate = 44100,
             .format = SF_FORMAT_WAV | SF_FORMAT_FLOAT},
-        &fixture.float1_fcd);
+        &fixture.fcd1);
     return fixture;
 }
 
@@ -229,7 +218,7 @@ static void test_patch(
 static void test_short(gconstpointer ud) {
     adiff_fixture const * const f = ud;
     diff d = adiff(f->short0, f->short1);
-    diff_assertions(&d, &f->short0_fcd, &f->short1_fcd);
+    diff_assertions(&d, &f->fcd0, &f->fcd1);
     test_patch(d.hunks, f->temp_dir, f->short0, f->short1);
     diff_free(&d);
 }
@@ -237,7 +226,7 @@ static void test_short(gconstpointer ud) {
 static void test_int(gconstpointer ud) {
     adiff_fixture const * const f = ud;
     diff d = adiff(f->int0, f->int1);
-    diff_assertions(&d, &f->int0_fcd, &f->int1_fcd);
+    diff_assertions(&d, &f->fcd0, &f->fcd1);
     test_patch(d.hunks, f->temp_dir, f->int0, f->int1);
     diff_free(&d);
 }
@@ -245,7 +234,7 @@ static void test_int(gconstpointer ud) {
 static void test_float(gconstpointer ud) {
     adiff_fixture const * const f = ud;
     diff d = adiff(f->float0, f->float1);
-    diff_assertions(&d, &f->float0_fcd, &f->float1_fcd);
+    diff_assertions(&d, &f->fcd0, &f->fcd1);
     test_patch(d.hunks, f->temp_dir, f->float0, f->float1);
     diff_free(&d);
 }
