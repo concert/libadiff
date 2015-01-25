@@ -26,6 +26,8 @@ typedef struct {
     char * const int1;
     char * const float0;
     char * const float1;
+    char * const double0;
+    char * const double1;
 } adiff_fixture;
 
 static void create_sndfile(
@@ -64,6 +66,8 @@ static adiff_fixture create_fixture() {
         .short_stereo0 = g_build_filename(temp_dir, "short_stereo0", NULL),
         .float0 = g_build_filename(temp_dir, "float0", NULL),
         .float1 = g_build_filename(temp_dir, "float1", NULL),
+        .double0 = g_build_filename(temp_dir, "double0", NULL),
+        .double1 = g_build_filename(temp_dir, "double1", NULL),
         };
     create_sndfile(
         fixture.alt_sample_rate,
@@ -112,6 +116,18 @@ static adiff_fixture create_fixture() {
         (SF_INFO) {
             .channels = 1, .samplerate = 44100,
             .format = SF_FORMAT_WAV | SF_FORMAT_FLOAT},
+        &fixture.fcd1);
+    create_sndfile(
+        fixture.double0,
+        (SF_INFO) {
+            .channels = 1, .samplerate = 44100,
+            .format = SF_FORMAT_WAV | SF_FORMAT_DOUBLE},
+        &fixture.fcd0);
+    create_sndfile(
+        fixture.double1,
+        (SF_INFO) {
+            .channels = 1, .samplerate = 44100,
+            .format = SF_FORMAT_WAV | SF_FORMAT_DOUBLE},
         &fixture.fcd1);
     return fixture;
 }
@@ -239,6 +255,14 @@ static void test_float(gconstpointer ud) {
     diff_free(&d);
 }
 
+static void test_double(gconstpointer ud) {
+    adiff_fixture const * const f = ud;
+    diff d = adiff(f->double0, f->double1);
+    diff_assertions(&d, &f->fcd0, &f->fcd1);
+    test_patch(d.hunks, f->temp_dir, f->double0, f->double1);
+    diff_free(&d);
+}
+
 int main(int argc, char **argv) {
     g_test_init(&argc, &argv, NULL);
     adiff_fixture fixture = create_fixture();
@@ -255,6 +279,8 @@ int main(int argc, char **argv) {
         "/adiff/int", &fixture, test_int);
     g_test_add_data_func(
         "/adiff/float", &fixture, test_float);
+    g_test_add_data_func(
+        "/adiff/double", &fixture, test_double);
     int const run_result = g_test_run();
     cleanup_fixture(fixture);
     return run_result;
