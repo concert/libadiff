@@ -189,6 +189,29 @@ static void diff_assertions(
     g_assert_null(h2->next);
 }
 
+static void files_identical(char const * const a, char const * const b) {
+    // Not that memory efficient, it uses twice the size of the files, but this
+    // is a unit test and the files are pretty small (O(kb))
+    gchar * a_contents = NULL;
+    gsize a_length = 0;
+    GError * error = NULL;
+    g_file_get_contents(a, &a_contents, &a_length, &error);
+    g_assert_null(error);
+    g_assert_cmpuint(a_length, >, 0);
+    gchar * b_contents = NULL;
+    gsize b_length = 0;
+    g_file_get_contents(b, &b_contents, &b_length, &error);
+    g_assert_null(error);
+    g_assert_cmpuint(a_length, ==, b_length);
+    for (gsize i = 0; i < a_length; i++) {
+        if (a_contents[i] != b_contents[i]) {
+            g_assert_cmpuint(i, <, i);
+        }
+    }
+    g_free(a_contents);
+    g_free(b_contents);
+}
+
 static void test_patch(
         hunk const * const h, char const * const temp_dir,
         char const * const a, char const * const b) {
@@ -198,6 +221,7 @@ static void test_patch(
     g_assert_cmpint(d.code, ==, ADIFF_OK);
     g_assert_null(d.hunks);
     diff_free(&d);
+    files_identical(b, patch_outfile);
     remove(patch_outfile);
     g_free(patch_outfile);
 }
