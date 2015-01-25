@@ -41,6 +41,10 @@ static unsigned short_fetcher(void * source, unsigned n_items, char * buffer) {
     return sf_readf_short((SNDFILE * const) source, (short *) buffer, n_items);
 }
 
+static unsigned int_fetcher(void * source, unsigned n_items, char * buffer) {
+    return sf_readf_int((SNDFILE * const) source, (int *) buffer, n_items);
+}
+
 static unsigned float_fetcher(void * source, unsigned n_items, char * buffer) {
     return sf_readf_float((SNDFILE * const) source, (float *) buffer, n_items);
 }
@@ -51,14 +55,21 @@ typedef struct {
 } fetcher_info;
 
 static fetcher_info get_fetcher(lsf_wrapped const f) {
-    if (
-            ((f.info.format & SF_FORMAT_SUBMASK) == SF_FORMAT_FLOAT) |
-            ((f.info.format & SF_FORMAT_SUBMASK) == SF_FORMAT_DOUBLE)) {
-        return (fetcher_info) {
-            .fetcher = float_fetcher, .sample_size = sizeof(float)};
-    } else {
-        return (fetcher_info) {
-            .fetcher = short_fetcher, .sample_size = sizeof(short)};
+    switch (f.info.format & SF_FORMAT_SUBMASK) {
+        case SF_FORMAT_PCM_S8:
+        case SF_FORMAT_PCM_U8:
+        case SF_FORMAT_PCM_16:
+            return (fetcher_info) {
+                .fetcher = short_fetcher, .sample_size = sizeof(short)};
+        case SF_FORMAT_PCM_24:
+        case SF_FORMAT_PCM_32:
+            return (fetcher_info) {
+                .fetcher = int_fetcher, .sample_size = sizeof(int)};
+        case SF_FORMAT_FLOAT:
+        case SF_FORMAT_DOUBLE:
+        default:
+            return (fetcher_info) {
+                .fetcher = float_fetcher, .sample_size = sizeof(float)};
     }
 }
 
@@ -96,6 +107,11 @@ static unsigned short_writer(
     return sf_writef_short(src, (short *) buffer, n_items);
 }
 
+static unsigned int_writer(
+        SNDFILE * const src, unsigned const n_items, char const * buffer) {
+    return sf_writef_int(src, (int *) buffer, n_items);
+}
+
 static unsigned float_writer(
         SNDFILE * const src, unsigned const n_items,
         char const * buffer) {
@@ -111,14 +127,21 @@ typedef struct {
 } writer_info;
 
 static writer_info get_writer(lsf_wrapped const f) {
-    if (
-            ((f.info.format & SF_FORMAT_SUBMASK) == SF_FORMAT_FLOAT) |
-            ((f.info.format & SF_FORMAT_SUBMASK) == SF_FORMAT_DOUBLE)) {
-        return (writer_info) {
-            .writer = float_writer, .sample_size = sizeof(float)};
-    } else {
-        return (writer_info) {
-            .writer = short_writer, .sample_size = sizeof(short)};
+    switch (f.info.format & SF_FORMAT_SUBMASK) {
+        case SF_FORMAT_PCM_S8:
+        case SF_FORMAT_PCM_U8:
+        case SF_FORMAT_PCM_16:
+            return (writer_info) {
+                .writer = short_writer, .sample_size = sizeof(short)};
+        case SF_FORMAT_PCM_24:
+        case SF_FORMAT_PCM_32:
+            return (writer_info) {
+                .writer = int_writer, .sample_size = sizeof(int)};
+        case SF_FORMAT_FLOAT:
+        case SF_FORMAT_DOUBLE:
+        default:
+            return (writer_info) {
+                .writer = float_writer, .sample_size = sizeof(float)};
     }
 }
 
