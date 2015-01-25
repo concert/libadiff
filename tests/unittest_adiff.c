@@ -14,6 +14,10 @@ typedef struct {
     char * const short1;
     fake_fetcher_data short1_ffd;
     char * const short_stereo0;
+    char * const int0;
+    fake_fetcher_data int0_ffd;
+    char * const int1;
+    fake_fetcher_data int1_ffd;
     char * const float0;
     fake_fetcher_data float0_ffd;
     char * const float1;
@@ -50,6 +54,14 @@ static adiff_fixture create_fixture() {
         .short1_ffd = (fake_fetcher_data) {
             .g_rand = g_rand_new_with_seed(346), .first_length = 700,
             .second_length = 17000},
+        .int0 = g_build_filename(temp_dir, "int0", NULL),
+        .int0_ffd = (fake_fetcher_data) {
+            .g_rand = g_rand_new_with_seed(92), .first_length = 500,
+            .second_length = 19000},
+        .int1 = g_build_filename(temp_dir, "int1", NULL),
+        .int1_ffd = (fake_fetcher_data) {
+            .g_rand = g_rand_new_with_seed(346), .first_length = 700,
+            .second_length = 17000},
         .short_stereo0 = g_build_filename(temp_dir, "short_stereo0", NULL),
         .float0 = g_build_filename(temp_dir, "float0", NULL),
         .float0_ffd = (fake_fetcher_data) {
@@ -81,6 +93,20 @@ static adiff_fixture create_fixture() {
         &fixture.short1_ffd);
     g_rand_free(fixture.short1_ffd.g_rand);
     create_sndfile(
+        fixture.int0,
+        (SF_INFO) {
+            .channels = 1, .samplerate = 44100,
+            .format = SF_FORMAT_WAV | SF_FORMAT_PCM_32},
+        &fixture.int0_ffd);
+    g_rand_free(fixture.int0_ffd.g_rand);
+    create_sndfile(
+        fixture.int1,
+        (SF_INFO) {
+            .channels = 1, .samplerate = 44100,
+            .format = SF_FORMAT_WAV | SF_FORMAT_PCM_32},
+        &fixture.int1_ffd);
+    g_rand_free(fixture.int1_ffd.g_rand);
+    create_sndfile(
         fixture.short_stereo0,
         (SF_INFO) {
             .channels = 2, .samplerate = 44100,
@@ -109,6 +135,8 @@ static void cleanup_fixture(adiff_fixture f) {
         g_free(f.element);
     rm_free(short0)
     rm_free(short1)
+    rm_free(int0)
+    rm_free(int1)
     rm_free(short_stereo0)
     rm_free(alt_sample_rate)
     rm_free(float0)
@@ -184,6 +212,14 @@ static void test_short(gconstpointer ud) {
     diff_free(&d);
 }
 
+static void test_int(gconstpointer ud) {
+    adiff_fixture const * const f = ud;
+    diff d = adiff(f->int0, f->int1);
+    diff_assertions(&d, &f->int0_ffd, &f->int1_ffd);
+    test_patch(d.hunks, f->temp_dir, f->int0, f->int1);
+    diff_free(&d);
+}
+
 static void test_float(gconstpointer ud) {
     adiff_fixture const * const f = ud;
     diff d = adiff(f->float0, f->float1);
@@ -204,6 +240,8 @@ int main(int argc, char **argv) {
         "/adiff/sample_format_mismatch", &fixture, test_sample_format_mismatch);
     g_test_add_data_func(
         "/adiff/short", &fixture, test_short);
+    g_test_add_data_func(
+        "/adiff/int", &fixture, test_int);
     g_test_add_data_func(
         "/adiff/float", &fixture, test_float);
     int const run_result = g_test_run();
