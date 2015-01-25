@@ -8,7 +8,7 @@
  */
 typedef struct chunk {
     union {
-        struct view;
+        view;
         view v;
     };
     hash hash;

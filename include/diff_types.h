@@ -4,7 +4,7 @@
  * The start index is inclusive, the end is exclusive (like a python list).
  * A view may be empty (contain no data), in this case start == end.
  */
-typedef struct view {
+typedef struct {
     unsigned start;
     unsigned end;
 } view;

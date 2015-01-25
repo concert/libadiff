@@ -7,7 +7,7 @@
 
 typedef struct {
     union {
-        struct fake_fetcher_data;
+        fake_fetcher_data;
         fake_fetcher_data ffd;
     };
     unsigned seed;
