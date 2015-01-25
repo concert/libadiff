@@ -1,7 +1,7 @@
 #include <glib.h>
 
-typedef struct {
-    GRand * const g_rand;
+typedef struct fake_fetcher_data {
+    GRand * g_rand;
     unsigned first_length;
     unsigned second_length;
     unsigned pos;

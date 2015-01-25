@@ -6,35 +6,45 @@
 #include "fake_fetcher.h"
 
 typedef struct {
+    union {
+        struct fake_fetcher_data;
+        fake_fetcher_data ffd;
+    };
+    unsigned seed;
+} file_content_desc;
+
+typedef struct {
     char * const temp_dir;
     char * const missing;
     char * const alt_sample_rate;
     char * const short0;
-    fake_fetcher_data short0_ffd;
+    file_content_desc short0_fcd;
     char * const short1;
-    fake_fetcher_data short1_ffd;
+    file_content_desc short1_fcd;
     char * const short_stereo0;
     char * const int0;
-    fake_fetcher_data int0_ffd;
+    file_content_desc int0_fcd;
     char * const int1;
-    fake_fetcher_data int1_ffd;
+    file_content_desc int1_fcd;
     char * const float0;
-    fake_fetcher_data float0_ffd;
+    file_content_desc float0_fcd;
     char * const float1;
-    fake_fetcher_data float1_ffd;
+    file_content_desc float1_fcd;
 } adiff_fixture;
 
 static void create_sndfile(
         char const * const path, SF_INFO info,
-        fake_fetcher_data * const ffd) {
+        file_content_desc * const fcd) {
     SNDFILE * f = sf_open(path, SFM_WRITE, &info);
-    if (ffd != NULL) {
+    if (fcd != NULL) {
+        fcd->g_rand = g_rand_new_with_seed(fcd->seed);
         int buffer[1024];
-        unsigned n_read = fake_fetcher(ffd, 1024, (char*) buffer);
+        unsigned n_read = fake_fetcher(&fcd->ffd, 1024, (char*) buffer);
         while (n_read) {
             sf_writef_int(f, buffer, n_read);
-            n_read = fake_fetcher(ffd, 1024, (char*) buffer);
+            n_read = fake_fetcher(&fcd->ffd, 1024, (char*) buffer);
         }
+        g_rand_free(fcd->g_rand);
     }
     sf_close(f);
 }
@@ -47,30 +57,24 @@ static adiff_fixture create_fixture() {
         .missing = g_build_filename(temp_dir, "missing", NULL),
         .alt_sample_rate = g_build_filename(temp_dir, "48khz", NULL),
         .short0 = g_build_filename(temp_dir, "short0", NULL),
-        .short0_ffd = (fake_fetcher_data) {
-            .g_rand = g_rand_new_with_seed(92), .first_length = 500,
-            .second_length = 19000},
+        .short0_fcd = (file_content_desc) {
+            .seed = 92, .first_length = 500, .second_length = 19000},
         .short1 = g_build_filename(temp_dir, "short1", NULL),
-        .short1_ffd = (fake_fetcher_data) {
-            .g_rand = g_rand_new_with_seed(346), .first_length = 700,
-            .second_length = 17000},
+        .short1_fcd = (file_content_desc) {
+            .seed = 346, .first_length = 700, .second_length = 17000},
         .int0 = g_build_filename(temp_dir, "int0", NULL),
-        .int0_ffd = (fake_fetcher_data) {
-            .g_rand = g_rand_new_with_seed(92), .first_length = 500,
-            .second_length = 19000},
+        .int0_fcd = (file_content_desc) {
+            .seed = 92, .first_length = 500, .second_length = 19000},
         .int1 = g_build_filename(temp_dir, "int1", NULL),
-        .int1_ffd = (fake_fetcher_data) {
-            .g_rand = g_rand_new_with_seed(346), .first_length = 700,
-            .second_length = 17000},
+        .int1_fcd = (file_content_desc) {
+            .seed = 346, .first_length = 700, .second_length = 17000},
         .short_stereo0 = g_build_filename(temp_dir, "short_stereo0", NULL),
         .float0 = g_build_filename(temp_dir, "float0", NULL),
-        .float0_ffd = (fake_fetcher_data) {
-            .g_rand = g_rand_new_with_seed(92), .first_length = 500,
-            .second_length = 19000},
+        .float0_fcd = (file_content_desc) {
+            .seed = 92, .first_length = 500, .second_length = 19000},
         .float1 = g_build_filename(temp_dir, "float1", NULL),
-        .float1_ffd = (fake_fetcher_data) {
-            .g_rand = g_rand_new_with_seed(346), .first_length = 700,
-            .second_length = 17000},
+        .float1_fcd = (file_content_desc) {
+            .seed = 346, .first_length = 700, .second_length = 17000},
         };
     create_sndfile(
         fixture.alt_sample_rate,
@@ -83,29 +87,25 @@ static adiff_fixture create_fixture() {
         (SF_INFO) {
             .channels = 1, .samplerate = 44100,
             .format = SF_FORMAT_WAV | SF_FORMAT_PCM_16},
-        &fixture.short0_ffd);
-    g_rand_free(fixture.short0_ffd.g_rand);
+        &fixture.short0_fcd);
     create_sndfile(
         fixture.short1,
         (SF_INFO) {
             .channels = 1, .samplerate = 44100,
             .format = SF_FORMAT_WAV | SF_FORMAT_PCM_16},
-        &fixture.short1_ffd);
-    g_rand_free(fixture.short1_ffd.g_rand);
+        &fixture.short1_fcd);
     create_sndfile(
         fixture.int0,
         (SF_INFO) {
             .channels = 1, .samplerate = 44100,
             .format = SF_FORMAT_WAV | SF_FORMAT_PCM_32},
-        &fixture.int0_ffd);
-    g_rand_free(fixture.int0_ffd.g_rand);
+        &fixture.int0_fcd);
     create_sndfile(
         fixture.int1,
         (SF_INFO) {
             .channels = 1, .samplerate = 44100,
             .format = SF_FORMAT_WAV | SF_FORMAT_PCM_32},
-        &fixture.int1_ffd);
-    g_rand_free(fixture.int1_ffd.g_rand);
+        &fixture.int1_fcd);
     create_sndfile(
         fixture.short_stereo0,
         (SF_INFO) {
@@ -117,15 +117,13 @@ static adiff_fixture create_fixture() {
         (SF_INFO) {
             .channels = 1, .samplerate = 44100,
             .format = SF_FORMAT_WAV | SF_FORMAT_FLOAT},
-        &fixture.float0_ffd);
-    g_rand_free(fixture.float0_ffd.g_rand);
+        &fixture.float0_fcd);
     create_sndfile(
         fixture.float1,
         (SF_INFO) {
             .channels = 1, .samplerate = 44100,
             .format = SF_FORMAT_WAV | SF_FORMAT_FLOAT},
-        &fixture.float1_ffd);
-    g_rand_free(fixture.float1_ffd.g_rand);
+        &fixture.float1_fcd);
     return fixture;
 }
 
@@ -173,8 +171,8 @@ static void test_sample_format_mismatch(gconstpointer ud) {
 }
 
 static void diff_assertions(
-        diff const * const d, fake_fetcher_data const * const a,
-        fake_fetcher_data const * const b) {
+        diff const * const d, file_content_desc const * const a,
+        file_content_desc const * const b) {
     g_assert_cmpint(d->code, ==, ADIFF_OK);
     hunk const * const h = d->hunks;
     g_assert_nonnull(h);
@@ -207,7 +205,7 @@ static void test_patch(
 static void test_short(gconstpointer ud) {
     adiff_fixture const * const f = ud;
     diff d = adiff(f->short0, f->short1);
-    diff_assertions(&d, &f->short0_ffd, &f->short1_ffd);
+    diff_assertions(&d, &f->short0_fcd, &f->short1_fcd);
     test_patch(d.hunks, f->temp_dir, f->short0, f->short1);
     diff_free(&d);
 }
@@ -215,7 +213,7 @@ static void test_short(gconstpointer ud) {
 static void test_int(gconstpointer ud) {
     adiff_fixture const * const f = ud;
     diff d = adiff(f->int0, f->int1);
-    diff_assertions(&d, &f->int0_ffd, &f->int1_ffd);
+    diff_assertions(&d, &f->int0_fcd, &f->int1_fcd);
     test_patch(d.hunks, f->temp_dir, f->int0, f->int1);
     diff_free(&d);
 }
@@ -223,7 +221,7 @@ static void test_int(gconstpointer ud) {
 static void test_float(gconstpointer ud) {
     adiff_fixture const * const f = ud;
     diff d = adiff(f->float0, f->float1);
-    diff_assertions(&d, &f->float0_ffd, &f->float1_ffd);
+    diff_assertions(&d, &f->float0_fcd, &f->float1_fcd);
     test_patch(d.hunks, f->temp_dir, f->float0, f->float1);
     diff_free(&d);
 }
