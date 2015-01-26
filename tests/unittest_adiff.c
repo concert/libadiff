@@ -38,10 +38,10 @@ static void create_sndfile(
         fcd->pos = 0;
         fcd->g_rand = g_rand_new_with_seed(fcd->seed);
         int buffer[1024];
-        unsigned n_read = fake_fetcher(&fcd->ffd, 1024, (char*) buffer);
+        unsigned n_read = fake_fetcher(&fcd->ffd, (char*) buffer, 1024);
         while (n_read) {
             sf_writef_int(f, buffer, n_read);
-            n_read = fake_fetcher(&fcd->ffd, 1024, (char*) buffer);
+            n_read = fake_fetcher(&fcd->ffd, (char*) buffer, 1024);
         }
         g_rand_free(fcd->g_rand);
     }

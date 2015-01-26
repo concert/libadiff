@@ -1,6 +1,6 @@
 #include "fake_fetcher.h"
 
-unsigned fake_fetcher(void * source, unsigned n_items, char * buffer) {
+unsigned fake_fetcher(void * source, char * buffer, unsigned n_items) {
     fake_fetcher_data * const ffd = source;
     guint32 * gu_buf = (guint32 *) buffer;
     unsigned const initial_pos = ffd->pos;

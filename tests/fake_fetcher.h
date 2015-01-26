@@ -7,4 +7,4 @@ typedef struct {
     unsigned pos;
 } fake_fetcher_data;
 
-unsigned fake_fetcher(void * source, unsigned n_items, char * buffer);
+unsigned fake_fetcher(void * source, char * buffer, unsigned n_items);
