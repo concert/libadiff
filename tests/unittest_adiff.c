@@ -231,37 +231,27 @@ static void test_patch(
     g_free(patch_outfile);
 }
 
-static void test_short(gconstpointer ud) {
-    adiff_fixture const * const f = ud;
-    diff d = adiff(f->short0, f->short1);
+static void positive_test(
+        char const * const a, char const * const b,
+        adiff_fixture const * const f) {
+    diff d = adiff(a, b);
     diff_assertions(&d, &f->fcd0, &f->fcd1);
-    test_patch(d.hunks, f->temp_dir, f->short0, f->short1);
+    test_patch(d.hunks, f->temp_dir, a, b);
     diff_free(&d);
 }
 
-static void test_int(gconstpointer ud) {
-    adiff_fixture const * const f = ud;
-    diff d = adiff(f->int0, f->int1);
-    diff_assertions(&d, &f->fcd0, &f->fcd1);
-    test_patch(d.hunks, f->temp_dir, f->int0, f->int1);
-    diff_free(&d);
-}
+#define pos_test(type) \
+    static void test_##type(gconstpointer ud) { \
+        adiff_fixture const * const f = ud; \
+        positive_test(f->type##0, f->type##1, f); \
+    }
 
-static void test_float(gconstpointer ud) {
-    adiff_fixture const * const f = ud;
-    diff d = adiff(f->float0, f->float1);
-    diff_assertions(&d, &f->fcd0, &f->fcd1);
-    test_patch(d.hunks, f->temp_dir, f->float0, f->float1);
-    diff_free(&d);
-}
+pos_test(short)
+pos_test(int)
+pos_test(float)
+pos_test(double)
 
-static void test_double(gconstpointer ud) {
-    adiff_fixture const * const f = ud;
-    diff d = adiff(f->double0, f->double1);
-    diff_assertions(&d, &f->fcd0, &f->fcd1);
-    test_patch(d.hunks, f->temp_dir, f->double0, f->double1);
-    diff_free(&d);
-}
+#undef pos_test
 
 int main(int argc, char **argv) {
     g_test_init(&argc, &argv, NULL);
