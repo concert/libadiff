@@ -108,28 +108,8 @@ diff adiff(const_str path_a, const_str path_b) {
     return result;
 }
 
-static unsigned short_writer(
-        SNDFILE * const src, unsigned const n_items, char const * buffer) {
-    return sf_writef_short(src, (short *) buffer, n_items);
-}
-
-static unsigned int_writer(
-        SNDFILE * const src, unsigned const n_items, char const * buffer) {
-    return sf_writef_int(src, (int *) buffer, n_items);
-}
-
-static unsigned float_writer(
-        SNDFILE * const src, unsigned const n_items, char const * buffer) {
-    return sf_writef_float(src, (float *) buffer, n_items);
-}
-
-static unsigned double_writer(
-        SNDFILE * const src, unsigned const n_items, char const * buffer) {
-    return sf_writef_double(src, (double *) buffer, n_items);
-}
-
 typedef unsigned (*data_writer)(
-    SNDFILE * const, unsigned const n_items, char const * buffer);
+    SNDFILE * const, char const * buffer, unsigned const n_items);
 
 typedef struct {
     data_writer const writer;
@@ -142,18 +122,22 @@ static writer_info get_writer(lsf_wrapped const f) {
         case SF_FORMAT_PCM_U8:
         case SF_FORMAT_PCM_16:
             return (writer_info) {
-                .writer = short_writer, .sample_size = sizeof(short)};
+                .writer = (data_writer) sf_writef_short,
+                .sample_size = sizeof(short)};
         case SF_FORMAT_PCM_24:
         case SF_FORMAT_PCM_32:
             return (writer_info) {
-                .writer = int_writer, .sample_size = sizeof(int)};
+                .writer = (data_writer) sf_writef_int,
+                .sample_size = sizeof(int)};
         case SF_FORMAT_FLOAT:
             return (writer_info) {
-                .writer = float_writer, .sample_size = sizeof(float)};
+                .writer = (data_writer) sf_writef_float,
+                .sample_size = sizeof(float)};
         case SF_FORMAT_DOUBLE:
         default:
             return (writer_info) {
-                .writer = double_writer, .sample_size = sizeof(double)};
+                .writer = (data_writer) sf_writef_double,
+                .sample_size = sizeof(double)};
     }
 }
 
@@ -173,7 +157,7 @@ static void copy_data(
         if ((end - start) < n_items)
             n_items = (end - start) + 1;
         const unsigned n_read = fi.fetcher(in.file, n_items, buffer);
-        ei.writer(out.file, n_read, buffer);  // Possible write failure
+        ei.writer(out.file, buffer, n_read);  // Possible write failure
         start += n_read;
     }
 }
