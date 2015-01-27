@@ -5,7 +5,7 @@
 /** \brief A function to be supplied by the library user for getting the data to diff.
  */
 typedef unsigned (*data_fetcher)(
-    void * source, unsigned n_items, char * buffer);
+    void * source, char * buffer, unsigned n_items);
 
 /** \brief Perform a binary diff.
  *

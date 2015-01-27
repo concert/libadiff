@@ -37,28 +37,33 @@ static adiff_return_code info_cmp(const lsf_wrapped a, const lsf_wrapped b) {
     return ADIFF_OK;
 }
 
-static unsigned short_fetcher(void * source, unsigned n_items, char * buffer) {
-    return sf_readf_short((SNDFILE * const) source, (short *) buffer, n_items);
-}
-
-static unsigned float_fetcher(void * source, unsigned n_items, char * buffer) {
-    return sf_readf_float((SNDFILE * const) source, (float *) buffer, n_items);
-}
-
 typedef struct {
     data_fetcher const fetcher;
     const size_t sample_size;
 } fetcher_info;
 
 static fetcher_info get_fetcher(lsf_wrapped const f) {
-    if (
-            ((f.info.format & SF_FORMAT_SUBMASK) == SF_FORMAT_FLOAT) |
-            ((f.info.format & SF_FORMAT_SUBMASK) == SF_FORMAT_DOUBLE)) {
-        return (fetcher_info) {
-            .fetcher = float_fetcher, .sample_size = sizeof(float)};
-    } else {
-        return (fetcher_info) {
-            .fetcher = short_fetcher, .sample_size = sizeof(short)};
+    switch (f.info.format & SF_FORMAT_SUBMASK) {
+        case SF_FORMAT_PCM_S8:
+        case SF_FORMAT_PCM_U8:
+        case SF_FORMAT_PCM_16:
+            return (fetcher_info) {
+                .fetcher = (data_fetcher) sf_readf_short,
+                .sample_size = sizeof(short)};
+        case SF_FORMAT_PCM_24:
+        case SF_FORMAT_PCM_32:
+            return (fetcher_info) {
+                .fetcher = (data_fetcher) sf_readf_int,
+                .sample_size = sizeof(int)};
+        case SF_FORMAT_FLOAT:
+            return (fetcher_info) {
+                .fetcher = (data_fetcher) sf_readf_float,
+                .sample_size = sizeof(float)};
+        case SF_FORMAT_DOUBLE:
+        default:
+            return (fetcher_info) {
+                .fetcher = (data_fetcher) sf_readf_double,
+                .sample_size = sizeof(double)};
     }
 }
 
@@ -91,19 +96,8 @@ diff adiff(const_str path_a, const_str path_b) {
     return result;
 }
 
-static unsigned short_writer(
-        SNDFILE * const src, unsigned const n_items, char const * buffer) {
-    return sf_writef_short(src, (short *) buffer, n_items);
-}
-
-static unsigned float_writer(
-        SNDFILE * const src, unsigned const n_items,
-        char const * buffer) {
-    return sf_writef_float(src, (float *) buffer, n_items);
-}
-
 typedef unsigned (*data_writer)(
-    SNDFILE * const, unsigned const n_items, char const * buffer);
+    SNDFILE * const, char const * buffer, unsigned const n_items);
 
 typedef struct {
     data_writer const writer;
@@ -111,14 +105,27 @@ typedef struct {
 } writer_info;
 
 static writer_info get_writer(lsf_wrapped const f) {
-    if (
-            ((f.info.format & SF_FORMAT_SUBMASK) == SF_FORMAT_FLOAT) |
-            ((f.info.format & SF_FORMAT_SUBMASK) == SF_FORMAT_DOUBLE)) {
-        return (writer_info) {
-            .writer = float_writer, .sample_size = sizeof(float)};
-    } else {
-        return (writer_info) {
-            .writer = short_writer, .sample_size = sizeof(short)};
+    switch (f.info.format & SF_FORMAT_SUBMASK) {
+        case SF_FORMAT_PCM_S8:
+        case SF_FORMAT_PCM_U8:
+        case SF_FORMAT_PCM_16:
+            return (writer_info) {
+                .writer = (data_writer) sf_writef_short,
+                .sample_size = sizeof(short)};
+        case SF_FORMAT_PCM_24:
+        case SF_FORMAT_PCM_32:
+            return (writer_info) {
+                .writer = (data_writer) sf_writef_int,
+                .sample_size = sizeof(int)};
+        case SF_FORMAT_FLOAT:
+            return (writer_info) {
+                .writer = (data_writer) sf_writef_float,
+                .sample_size = sizeof(float)};
+        case SF_FORMAT_DOUBLE:
+        default:
+            return (writer_info) {
+                .writer = (data_writer) sf_writef_double,
+                .sample_size = sizeof(double)};
     }
 }
 
@@ -137,8 +144,8 @@ static void copy_data(
     while (start < end) {
         if ((end - start) < n_items)
             n_items = (end - start) + 1;
-        const unsigned n_read = fi.fetcher(in.file, n_items, buffer);
-        ei.writer(out.file, n_read, buffer);  // Possible write failure
+        const unsigned n_read = fi.fetcher(in.file, buffer, n_items);
+        ei.writer(out.file, buffer, n_read);  // Possible write failure
         start += n_read;
     }
 }

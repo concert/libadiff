@@ -4,7 +4,7 @@
 
 /** \brief Opaque structure holding state for hashing.
  */
-typedef struct hash_data {
+typedef struct {
     hash h;
     hash irreducible_polynomial;
     hash table[256];
@@ -28,7 +28,7 @@ hash hash_data_update(hash_data * const hd, unsigned char const next);
  */
 typedef struct {
     union {
-        struct hash_data;
+        hash_data;
         hash_data hd;
     };
     unsigned window_size;

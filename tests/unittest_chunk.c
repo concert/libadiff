@@ -36,7 +36,7 @@ static void test_with_random_data() {
 }
 
 static unsigned immediate_split_fetcher(
-        void * source, unsigned n_items, char * buffer) {
+        void * source, char * buffer, unsigned n_items) {
     unsigned * const n_remaining = source;
     unsigned n = (*n_remaining > n_items) ? n_items : *n_remaining;
     for (unsigned i = 0; i < n; i++) {
