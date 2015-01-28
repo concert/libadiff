@@ -151,7 +151,7 @@ static void cleanup_fixture(adiff_fixture f) {
     g_free(f.missing);
 }
 
-static void test_files_missing(gconstpointer ud) {
+static void test_adiff_files_missing(gconstpointer ud) {
     adiff_fixture const * const f = ud;
     diff d = adiff(f->missing, f->short0);
     g_assert_cmpint(d.code, ==, ADIFF_ERR_OPEN_A);
@@ -159,19 +159,36 @@ static void test_files_missing(gconstpointer ud) {
     g_assert_cmpint(d.code, ==, ADIFF_ERR_OPEN_B);
 }
 
-static void test_sample_rate_mismatch(gconstpointer ud) {
+static void test_apatch_file_open_errors(gconstpointer ud) {
+    adiff_fixture const * const f = ud;
+    char * patch_outfile = g_build_filename(f->temp_dir, "patch_result", NULL);
+    apatch_return_code code = apatch(
+        NULL, f->missing, f->short0, patch_outfile);
+    g_assert_cmpint(code, ==, APATCH_ERR_OPEN_A);
+    code = apatch(NULL, f->short0, f->missing, patch_outfile);
+    g_assert_cmpint(code, ==, APATCH_ERR_OPEN_B);
+    char * ned_outfile = g_build_filename(
+        f->temp_dir, "not_a_dir", "patch_result", NULL);
+    code = apatch(NULL, f->short0, f->short1, ned_outfile);
+    g_assert_cmpint(code, ==, APATCH_ERR_OPEN_OUTPUT);
+    g_free(ned_outfile);
+    g_assert_cmpint(remove(patch_outfile), ==, -1);
+    g_free(patch_outfile);
+}
+
+static void test_adiff_sample_rate_mismatch(gconstpointer ud) {
     adiff_fixture const * const f = ud;
     diff d = adiff(f->alt_sample_rate, f->short0);
     g_assert_cmpint(d.code, ==, ADIFF_ERR_SAMPLE_RATE);
 }
 
-static void test_channels_mismatch(gconstpointer ud) {
+static void test_adiff_channels_mismatch(gconstpointer ud) {
     adiff_fixture const * const f = ud;
     diff d = adiff(f->short_stereo0, f->short0);
     g_assert_cmpint(d.code, ==, ADIFF_ERR_CHANNELS);
 }
 
-static void test_sample_format_mismatch(gconstpointer ud) {
+static void test_adiff_sample_format_mismatch(gconstpointer ud) {
     adiff_fixture const * const f = ud;
     diff d = adiff(f->float0, f->short0);
     g_assert_cmpint(d.code, ==, ADIFF_ERR_SAMPLE_FORMAT);
@@ -258,13 +275,15 @@ pos_test(double)
 int main(int argc, char **argv) {
     g_test_init(&argc, &argv, NULL);
     adiff_fixture fixture = create_fixture();
-    g_test_add_data_func("/adiff/missing", &fixture, test_files_missing);
+    g_test_add_data_func("/adiff/missing", &fixture, test_adiff_files_missing);
     g_test_add_data_func(
-        "/adiff/sample_rate_mismatch", &fixture, test_sample_rate_mismatch);
+        "/adiff/sample_rate_mismatch", &fixture,
+        test_adiff_sample_rate_mismatch);
     g_test_add_data_func(
-        "/adiff/channels_mismatch", &fixture, test_channels_mismatch);
+        "/adiff/channels_mismatch", &fixture, test_adiff_channels_mismatch);
     g_test_add_data_func(
-        "/adiff/sample_format_mismatch", &fixture, test_sample_format_mismatch);
+        "/adiff/sample_format_mismatch", &fixture,
+        test_adiff_sample_format_mismatch);
     g_test_add_data_func(
         "/adiff/short", &fixture, test_short);
     g_test_add_data_func(
@@ -273,6 +292,8 @@ int main(int argc, char **argv) {
         "/adiff/float", &fixture, test_float);
     g_test_add_data_func(
         "/adiff/double", &fixture, test_double);
+    g_test_add_data_func(
+        "/apatch/open_errors", &fixture, test_apatch_file_open_errors);
     int const run_result = g_test_run();
     cleanup_fixture(fixture);
     return run_result;
