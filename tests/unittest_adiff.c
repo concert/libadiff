@@ -144,6 +144,8 @@ static void cleanup_fixture(adiff_fixture f) {
     rm_free(alt_sample_rate)
     rm_free(float0)
     rm_free(float1)
+    rm_free(double0)
+    rm_free(double1)
     rm_free(temp_dir)
     #undef rm_free
     g_free(f.missing);
