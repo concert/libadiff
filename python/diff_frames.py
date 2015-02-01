@@ -245,7 +245,11 @@ class DiffApp:
                 self._loop.run_until_complete(self._run())
             finally:
                 self._loop.close()
-                print('\n', end='')  # Yuck :-(
+                # FIXME: fairly hacky way to tidy up the display when exiting
+                self._active_cursor_fmt = self._inactive_cursor_fmt = ''
+                self._active_hunk_fmt = ''
+                self._draw()
+                print('\n', end='')
 
     @asyncio.coroutine
     def _run(self):
