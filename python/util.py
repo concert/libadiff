@@ -151,16 +151,17 @@ class FormattedList(MutableSequence):
     def __getitem__(self, i):
         return tuple(self._fmts.get(i, ())), self._content[i]
 
+    @staticmethod
+    def _crop_formats(fmts, remaining_len):
+        for fmt in fmts:
+            if fmt.len > remaining_len:
+                fmt = fmt._replace(len=remaining_len)
+            yield fmt
+
     def __setitem__(self, i, value):
         fmts, c = value
         self._content[i] = c
-        if i in self._fmts:
-            del self._fmts[i]
-        remaining = len(self) - i
-        for fmt in fmts:
-            if fmt.len > remaining:
-                fmt = fmt._replace(len=remaining)
-            self._fmts[i].append(fmt)
+        self._fmts[i][:] = self._crop_formats(fmts, len(self) - i)
 
     def format(self, start, end, fmt_str):
         if not 0 <= start < len(self):
