@@ -170,37 +170,29 @@ class FormattedList(MutableSequence):
             raise IndexError('End index out of range')
         self._fmts[start].append(Fmt(fmt_str, end - start))
 
-    @staticmethod
-    def _change_len_fmts(fmts, predicate, delta):
-        for fmt in fmts:
-            if predicate(fmt):
-                yield fmt._replace(len=fmt.len + delta)
-            else:
-                yield fmt
-
-    def _guard_index(self, i):
-        if not 0 <= i < len(self):
+    def _adjust_fmt_lens(self, edit_idx, delta):
+        if not 0 <= edit_idx < len(self):
             raise IndexError('Index out of range')
+        for i in range(edit_idx):
+            def adjust(fmt):
+                if i + fmt.len > edit_idx:
+                    fmt = fmt._replace(len=fmt.len + delta)
+                return fmt
+            fmts, c = self[i]
+            fmts = map(adjust, fmts)
+            self[i] = fmts, c
 
     def __delitem__(self, i):
-        self._guard_index(i)
-        for j in range(i):
-            fmts, c = self[j]
-            fmts = self._change_len_fmts(fmts, lambda f: j + f.len > i, -1)
-            self[j] = fmts, c
+        self._adjust_fmt_lens(i, -1)
         if self._fmts[i]:
-            self._fmts[i + 1].extend(self._change_len_fmts(
-                self._fmts[i], lambda _: True, -1))
+            self._fmts[i + 1].extend(map(
+                lambda fmt: fmt._replace(len=fmt.len - 1), self._fmts[i]))
         for j in range(i, len(self) - 1):
             self[j] = self[j + 1]
         self._content.pop()
 
     def insert(self, i, char):
-        self._guard_index(i)
-        for j in range(i):
-            fmts, c = self[j]
-            fmts = self._change_len_fmts(fmts, lambda f: j + f.len > i, 1)
-            self[j] = fmts, c
+        self._adjust_fmt_lens(i, 1)
         self._content.insert(i, char)
         for j in reversed(range(i, len(self) - 1)):
             if self._fmts[j - 1]:
