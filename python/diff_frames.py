@@ -11,7 +11,7 @@ from math import ceil
 import pysndfile
 
 from terminal import LinePrintingTerminal, Keyboard
-from util import cache, overlay_lists, AB, Time, Clamped, CharList
+from util import cache, overlay_lists, AB, Time, Clamped, FormattedList
 
 bdiff_frames_path = os.path.join(
     os.path.dirname(__file__), os.pardir, 'diff_frames')
@@ -47,11 +47,12 @@ class Hunk:
 
 
 class NormalisedHunk(Hunk):
-    __slots__ = Hunk.__slots__ + ('offsets', '_end')
+    __slots__ = Hunk.__slots__ + ('offsets', '_end', 'active')
 
     def __init__(self, start_a, end_a, start_b, end_b, offset_a, offset_b):
         super().__init__(start_a, end_a, start_b, end_b)
         self.offsets = AB(offset_a, offset_b)
+        self.active = 1
 
     @classmethod
     def from_hunk(cls, hunk, offsets):
@@ -113,7 +114,8 @@ class _DrawState:
     call.
     '''
     __slots__ = (
-        'app', '_diff_width', '_chars_per_frame', 'start_times', 'end_times')
+        'app', '_diff_width', '_chars_per_frame', '_cursor_pos', 'start_times',
+        'end_times')
 
     def __init__(self, app):
         self.app = app
@@ -140,12 +142,17 @@ class _DrawState:
         frames, into a x-coordinate on the terminal, taking into account
         various application state parameters.
         '''
-        return int(self.chars_per_frame * frames)
+        return int(ceil(self.chars_per_frame * frames))
 
     def to_frames(self, chars):
         '''The inverse of to_chars()
         '''
         return int(chars / self.chars_per_frame)
+
+    @property
+    @cache
+    def cursor_pos(self):
+        return self.to_chars(self.app._cursor)
 
 
 class DiffApp:
@@ -156,21 +163,24 @@ class DiffApp:
         self._diff = None
         self._len = 0
 
+        self._draw_state = None
+
         self._zoom = 1.0
         self._cues_are_free = True
         self._start_cue = 0
         self._end_cue = 0
-        self._active_cue = None
+        self._active_stream = 1
         self._cursor = 0
         self._status = ''
-
-        self._draw_state = None
 
         self._loop = asyncio.get_event_loop()
         self._terminal = terminal or LinePrintingTerminal()
         self._insertion_fmt = self._terminal.green
         self._change_fmt = self._terminal.yellow
-        self._cursor_fmt = self._terminal.on_bright_black
+        self._inactive_cursor_fmt = self._terminal.on_bright_black
+        self._active_cursor_fmt = (
+            self._inactive_cursor_fmt + self._terminal.reverse)
+        self._active_hunk_fmt = self._terminal.underline
         self._loop.add_reader(self._terminal.infile, self._handle_input)
         self._keyboard = Keyboard()
         self.bindings = {
@@ -179,13 +189,16 @@ class DiffApp:
             '-': self._zoom_out,
             'ctrl i': self._cue_next_hunk,  # Tab, apparently
             'shift tab': self._cue_prev_hunk,
-            '[': self._select_start_cue,
-            ']': self._select_end_cue,
+            '[': self._set_start_cue,
+            ']': self._set_end_cue,
+            'up': self._on_up,
+            'down': self._on_down,
             'left': self._on_left,
             'right': self._on_right,
             'esc': self._on_esc,
             'home': self._on_home,
             'end': self._on_end,
+            'return': self._select_hunk,
         }
 
     def _start_cue_max(self):
@@ -200,6 +213,12 @@ class DiffApp:
         else:
             return self._start_cue + self._draw_state.to_frames(1)
 
+    def _cursor_max(self):
+        if self._draw_state:
+            return self._len - self._draw_state.to_frames(1)
+        else:
+            return self._len
+
     @contextmanager
     def _free_cues(self):
         '''We normally want to constrain the movement of the cue points so they
@@ -213,7 +232,8 @@ class DiffApp:
     _zoom = Clamped(1.0, None)
     _start_cue = Clamped(0, _start_cue_max)
     _end_cue = Clamped(_end_cue_min, lambda self: self._len)
-    _cursor = Clamped(0, lambda self: self._len)
+    _cursor = Clamped(0, _cursor_max)
+    _active_stream = Clamped(0, lambda self: len(self.filenames) - 1)
 
     def __call__(self):
         self._psfs = AB.from_map(pysndfile.PySndfile, self.filenames)
@@ -225,7 +245,11 @@ class DiffApp:
                 self._loop.run_until_complete(self._run())
             finally:
                 self._loop.close()
-                print('\n', end='')  # Yuck :-(
+                # FIXME: fairly hacky way to tidy up the display when exiting
+                self._active_cursor_fmt = self._inactive_cursor_fmt = ''
+                self._active_hunk_fmt = ''
+                self._draw()
+                print('\n', end='')
 
     @asyncio.coroutine
     def _run(self):
@@ -259,9 +283,12 @@ class DiffApp:
             return tuple(
                 Hunk(*map(int, l.split())) for l in stdout.splitlines())
 
+    def _make_formatted_list(self, string):
+        return FormattedList(string, self._terminal.normal)
+
     def _make_diff_reprs(self, draw_state, diff):
-        l = '-' * draw_state.diff_width
-        diff_reprs = AB(CharList(l), CharList(l))
+        l = lambda: self._make_formatted_list('-' * draw_state.diff_width)
+        diff_reprs = AB(l(), l())
         for hunk in diff:
             hunk_width = draw_state.to_chars(len(hunk))
             dr_start_idx = draw_state.to_chars(hunk.start)
@@ -275,49 +302,40 @@ class DiffApp:
 
             hunk_scales = hunk.scale(hunk_width)
             hunk_lists = hunk_scales.map(lambda hs: '+' * hs).ljust(
-                hunk_width).map(CharList)
-            hunk_lists.pre_format_index(0, self._change_fmt)
+                hunk_width).map(self._make_formatted_list)
             if any(s < hunk_width for s in hunk_scales):
                 change_threshold = min(hunk_scales)
-                hunk_lists.pre_format_index(
-                    change_threshold, self._insertion_fmt)
-            hunk_lists.post_format_index(hunk_width - 1, self._terminal.normal)
+                hunk_lists.format(0, change_threshold, self._change_fmt)
+                hunk_lists.format(
+                    change_threshold, hunk_width, self._insertion_fmt)
+            else:
+                hunk_lists.format(0, hunk_width, self._change_fmt)
+            hunk_lists[hunk.active].format(
+                0, hunk_width, self._active_hunk_fmt)
             for dr, hs in zip(diff_reprs, hunk_lists):
                 overlay_lists(dr, hs, dr_start_idx)
         return diff_reprs
 
     def _make_diff_lines(self, draw_state, diff):
         diff_reprs = self._make_diff_reprs(draw_state, diff)
-        cursor_pos = draw_state.to_chars(self._cursor)
-        existing_fmts = AB(self._terminal.normal)
-        existing_fmts += diff_reprs.get_format(cursor_pos)
-        diff_reprs.prepend_format_index(cursor_pos, self._cursor_fmt)
-        diff_reprs.post_format_index.distribute(AB(cursor_pos), existing_fmts)
+        for i, diff_repr in enumerate(diff_reprs):
+            if i == self._active_stream:
+                fmt = self._active_cursor_fmt
+            else:
+                fmt = self._inactive_cursor_fmt
+            diff_repr.format(
+                draw_state.cursor_pos, draw_state.cursor_pos + 1, fmt)
         return diff_reprs.map(str) + AB(' ', ' ') + draw_state.end_times
 
-    @property
-    def _start_cue_mark(self):
-        if self._active_cue == 'start':
-            return self._terminal.reverse('[')
-        else:
-            return '['
-
-    @property
-    def _end_cue_mark(self):
-        if self._active_cue == 'end':
-            return self._terminal.reverse(']')
-        else:
-            return ']'
-
     def _make_cue_line(self, draw_state):
-        cue_line = [' '] * draw_state.diff_width
-        overlay_lists(
-            cue_line, [self._start_cue_mark],
-            draw_state.to_chars(self._start_cue))
-        overlay_lists(
-            cue_line, [self._end_cue_mark],
-            draw_state.to_chars(self._end_cue))
-        return ''.join(cue_line)
+        cue_line = self._make_formatted_list(' ' * draw_state.diff_width)
+        cue_line[draw_state.to_chars(self._start_cue)] = (), '['
+        cue_line[draw_state.to_chars(self._end_cue)] = (), ']'
+        cursor_pos = draw_state.to_chars(self._cursor)
+        cue_line.format(
+            draw_state.cursor_pos, draw_state.cursor_pos + 1,
+            self._inactive_cursor_fmt)
+        return str(cue_line)
 
     def _draw(self):
         self._draw_state = ds = _DrawState(self)
@@ -343,7 +361,6 @@ class DiffApp:
         self._zoom /= 1.1
 
     def _cue_hunk_helper(self, iterable, predicate):
-        self._active_cue = None
         for hunk in iterable:
             if predicate(hunk):
                 with self._free_cues():
@@ -360,38 +377,26 @@ class DiffApp:
         self._cue_hunk_helper(
             reversed(self._diff), lambda hunk: hunk.end < self._cursor)
 
-    def _select_cue_helper(self, cue_name):
-        if self._active_cue == cue_name:
-            self._active_cue = None
-        else:
-            self._active_cue = cue_name
+    def _set_start_cue(self):
+        self._start_cue = self._cursor
 
-    def _select_start_cue(self):
-        self._select_cue_helper('start')
-
-    def _select_end_cue(self):
-        self._select_cue_helper('end')
-
-    def _move_active_cue_point(self, d):
-        attr_name = '_{}_cue'.format(self._active_cue)
-        setattr(
-            self, attr_name,
-            getattr(self, attr_name) + self._draw_state.to_frames(d))
+    def _set_end_cue(self):
+        self._end_cue = self._cursor
 
     def _move_cursor(self, d):
         self._cursor += self._draw_state.to_frames(d)
 
-    def _on_arrow(self, d):
-        if self._active_cue:
-            self._move_active_cue_point(d)
-        else:
-            self._move_cursor(d)
+    def _on_up(self):
+        self._active_stream -= 1
+
+    def _on_down(self):
+        self._active_stream += 1
 
     def _on_left(self):
-        self._on_arrow(-1)
+        self._move_cursor(-1)
 
     def _on_right(self):
-        self._on_arrow(1)
+        self._move_cursor(1)
 
     def _on_home(self):
         if self._cursor == self._start_cue:
@@ -406,10 +411,12 @@ class DiffApp:
             self._cursor = self._end_cue
 
     def _on_esc(self):
-        if self._active_cue:
-            self._active_cue = None
-        else:
-            self._cursor = self._start_cue
+        self._cursor = self._start_cue
+
+    def _select_hunk(self):
+        for hunk in self._diff:
+            if hunk.start <= self._cursor <= hunk.end:
+                hunk.active = self._active_stream
 
 
 def diff(filename_a, filename_b):

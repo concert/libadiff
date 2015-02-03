@@ -1,5 +1,5 @@
 from functools import wraps
-from collections import namedtuple
+from collections import namedtuple, MutableSequence, defaultdict
 from itertools import starmap
 from operator import add, sub, eq
 
@@ -122,7 +122,10 @@ class AB:
 
     @classmethod
     def from_map(cls, func, iterable):
-        return cls(*map(func, iterable))
+        # Caution: http://bugs.python.org/issue4806 can give odd results if you
+        # just plough the map into cls():
+        args = tuple(map(func, iterable))
+        return cls(*args)
 
     def map(self, func, *args, **kwargs):
         return self.from_map(lambda i: func(i, *args, **kwargs), self)
@@ -131,63 +134,97 @@ class AB:
         return self.__class__(*reversed(self))
 
 
-class FormattedChar:
-    __slots__ = 'pre_fmt', 'c', 'post_fmt'
+class Fmt(namedtuple('Fmt', ('str', 'len'))):
+    def __str__(self):
+        return self.str
 
-    def __init__(self, c, pre_fmt='', post_fmt=''):
-        self.pre_fmt = pre_fmt
-        self.c = c
-        self.post_fmt = post_fmt
+
+class FormattedList(MutableSequence):
+    def __init__(self, string, normal):
+        self.normal = normal
+        self._content = list(string)
+        self._fmts = defaultdict(list)
+
+    def __len__(self):
+        return len(self._content)
+
+    def __getitem__(self, i):
+        return tuple(self._fmts.get(i, ())), self._content[i]
+
+    @staticmethod
+    def _crop_formats(fmts, remaining_len):
+        for fmt in fmts:
+            if fmt.len > remaining_len:
+                fmt = fmt._replace(len=remaining_len)
+            yield fmt
+
+    def __setitem__(self, i, value):
+        fmts, c = value
+        self._content[i] = c
+        self._fmts[i][:] = self._crop_formats(fmts, len(self) - i)
+
+    def format(self, start, end, fmt_str):
+        if not 0 <= start < len(self):
+            raise IndexError('Start index out of range')
+        if not start <= end <= len(self):
+            raise IndexError('End index out of range')
+        self._fmts[start].append(Fmt(fmt_str, end - start))
+
+    def _adjust_fmt_lens(self, edit_idx, delta):
+        if not 0 <= edit_idx < len(self):
+            raise IndexError('Index out of range')
+        for i in range(edit_idx):
+            def adjust(fmt):
+                if i + fmt.len > edit_idx:
+                    fmt = fmt._replace(len=fmt.len + delta)
+                return fmt
+            fmts, c = self[i]
+            fmts = map(adjust, fmts)
+            self[i] = fmts, c
+
+    def __delitem__(self, i):
+        self._adjust_fmt_lens(i, -1)
+        if self._fmts[i]:
+            self._fmts[i + 1].extend(map(
+                lambda fmt: fmt._replace(len=fmt.len - 1), self._fmts[i]))
+        for j in range(i, len(self) - 1):
+            self[j] = self[j + 1]
+        self._content.pop()
+
+    def insert(self, i, char):
+        self._adjust_fmt_lens(i, 1)
+        self._content.insert(i, char)
+        for j in reversed(range(i, len(self) - 1)):
+            if self._fmts[j - 1]:
+                self._fmts[j] = self._fmts[j - 1]
+                del self._fmts[j - 1]
+
+    @staticmethod
+    def _start_fmts(stack, ends, i, new_fmts):
+        for fmt in new_fmts:
+            stack.append(fmt)
+            ends[i + fmt.len].append(fmt)
+            yield fmt.str
+
+    @staticmethod
+    def _end_fmts(stack, ends, i):
+        if i in ends:
+            for fmt in ends.pop(i):
+                stack.remove(fmt)
+            yield from map(str, stack)
+
+    def _str_iter(self):
+        stack = [self.normal]
+        ends = defaultdict(list)
+        for i, (fmts, c) in enumerate(self):
+            yield from self._end_fmts(stack, ends, i)
+            yield from self._start_fmts(stack, ends, i, fmts)
+            yield c
+        if len(self):
+            yield from self._end_fmts(stack, ends, i + 1)
 
     def __str__(self):
-        return self.pre_fmt + self.c + self.post_fmt
-
-    def __repr__(self):
-        return 'c({!r}, {!r}, {!r})'.format(
-            self.c, self.pre_fmt, self.post_fmt)
-
-
-class CharList(list):
-    def _format_index(self, i, name, fmt, add=False):
-        if i >= len(self):
-            i = len(self) - 1
-            name = 'post_fmt'
-        try:
-            existing_fmt = getattr(self[i], name)
-        except AttributeError:
-            self[i] = FormattedChar(self[i], **{name: fmt})
-            existing_fmt = ''
-        else:
-            if add:
-                fmt = existing_fmt + fmt
-            setattr(self[i], name, fmt)
-
-    def prepend_format_index(self, i, fmt):
-        '''Add a format before the indexed character'''
-        self._format_index(i, 'pre_fmt', fmt, add=True)
-
-    def pre_format_index(self, i, fmt):
-        '''Replace the format before the indexed character'''
-        self._format_index(i, 'pre_fmt', fmt)
-
-    def append_format_index(self, i, fmt):
-        '''Add a format after the indexed character'''
-        self._format_index(i, 'post_fmt', fmt, add=True)
-
-    def post_format_index(self, i, fmt):
-        '''Replace the format after the indexed character'''
-        self._format_index(i, 'post_fmt', fmt)
-
-    def get_format(self, i):
-        '''Get the latest format string to be applied to the indexed character
-        '''
-        for c in self[i::-1]:
-            if hasattr(c, 'pre_fmt'):
-                return c.post_fmt or c.pre_fmt
-        return ''
-
-    def __str__(self):
-        return ''.join(map(str, self))
+        return ''.join(self._str_iter())
 
 
 class Time(namedtuple('Time', ('hours', 'minutes', 'seconds', 'precision'))):
