@@ -23,6 +23,29 @@ static inline unsigned min(unsigned a, unsigned b) {
     return (a < b) ? a : b;
 }
 
+static unsigned find_start_delta(
+        data_fetcher const df, unsigned const sample_size, char * const buf_a,
+        char * const buf_b, void * const a, void * const b) {
+    unsigned delta_offset = 0;
+    while (1) {
+        unsigned const n_read_a = df(a, buf_a, buf_size/sample_size);
+        unsigned const n_read_b = df(b, buf_b, buf_size/sample_size);
+        unsigned const min_read = min(n_read_a, n_read_b);
+        for (
+                unsigned byte_idx = 0; byte_idx < (sample_size * min_read);
+                byte_idx++) {
+            if (buf_a[byte_idx] != buf_b[byte_idx]) {
+                return (byte_idx / sample_size) + delta_offset;
+            }
+        }
+        if (n_read_a != n_read_b) {
+            return min_read + delta_offset;
+        } else {
+            delta_offset += min_read;
+        }
+    }
+}
+
 /*
  * Takes a set of "rough" hunks (start and end points aligned to chunk
  * boundaries) and reads the data around the start and end points to narrow
@@ -35,29 +58,9 @@ hunk * const bdiff_narrow(
     for (; rough_hunks != NULL; rough_hunks = rough_hunks->next) {
         ds(a, rough_hunks->a.start);
         ds(b, rough_hunks->b.start);
-        unsigned start_delta = 0, delta_offset = 0;
         char buf_a[buf_size], buf_b[buf_size];
-        short done = 0;
-        do {
-            unsigned const n_read_a = df(a, buf_a, buf_size/sample_size);
-            unsigned const n_read_b = df(b, buf_b, buf_size/sample_size);
-            unsigned const min_read = min(n_read_a, n_read_b);
-            for (
-                    unsigned byte_idx = 0; byte_idx < (sample_size * min_read);
-                    byte_idx++) {
-                if (buf_a[byte_idx] != buf_b[byte_idx]) {
-                    start_delta = (byte_idx / sample_size) + delta_offset;
-                    done = 1;
-                    break;
-                }
-            }
-            if (!done && (n_read_a != n_read_b)) {
-                start_delta = min_read + delta_offset;
-                done = 1;
-            } else {
-                delta_offset += min_read;
-            }
-        } while (!done);
+        unsigned const start_delta = find_start_delta(
+            df, sample_size, buf_a, buf_b, a, b);
         unsigned end_delta = min(
             rough_hunks->a.end - (rough_hunks->a.start + start_delta),
             rough_hunks->b.end - (rough_hunks->b.start + start_delta));
