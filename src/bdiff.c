@@ -46,6 +46,27 @@ static unsigned find_start_delta(
     }
 }
 
+static unsigned find_end_delta(
+        data_fetcher const df, unsigned const sample_size, unsigned end_delta,
+        char * const buf_a, char * const buf_b, void * const a,
+        void * const b) {
+    unsigned loop_start_delta = end_delta;
+    while (loop_start_delta) {
+        unsigned const n_read = df(
+            a, buf_a, min(buf_size/sample_size, loop_start_delta));
+        assert(df(b, buf_b, n_read) == n_read);
+        for (
+                unsigned byte_idx = 0; byte_idx < (sample_size * n_read);
+                byte_idx++) {
+            if (buf_a[byte_idx] != buf_b[byte_idx]) {
+                end_delta = loop_start_delta - (byte_idx / sample_size) - 1;
+            }
+        }
+        loop_start_delta -= n_read;
+    }
+    return end_delta;
+}
+
 /*
  * Takes a set of "rough" hunks (start and end points aligned to chunk
  * boundaries) and reads the data around the start and end points to narrow
@@ -69,20 +90,8 @@ hunk * const bdiff_narrow(
             end_delta--;
             ds(a, rough_hunks->a.end - end_delta);
             ds(b, rough_hunks->b.end - end_delta);
-        }
-        unsigned loop_start_delta = end_delta;
-        while (loop_start_delta) {
-            unsigned const n_read = df(
-                a, buf_a, min(buf_size/sample_size, loop_start_delta));
-            assert(df(b, buf_b, n_read) == n_read);
-            for (
-                    unsigned byte_idx = 0; byte_idx < (sample_size * n_read);
-                    byte_idx++) {
-                if (buf_a[byte_idx] != buf_b[byte_idx]) {
-                    end_delta = loop_start_delta - (byte_idx / sample_size) - 1;
-                }
-            }
-            loop_start_delta -= n_read;
+            end_delta = find_end_delta(
+                df, sample_size, end_delta, buf_a, buf_b, a, b);
         }
         append_hunk(
             &precise_hunks_head, &precise_hunks_tail,
