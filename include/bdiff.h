@@ -19,3 +19,9 @@ typedef unsigned (*data_fetcher)(
 hunk * const bdiff(
     unsigned const sample_size, data_fetcher const df, void * const a,
     void * const b);
+
+typedef void (*data_seeker)(void * source, unsigned pos);
+
+hunk * const bdiff_narrow(
+    hunk * rough_hunks, unsigned const sample_size, data_seeker const ds,
+    data_fetcher const df, void * const a, void * const b);
