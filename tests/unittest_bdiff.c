@@ -91,6 +91,15 @@ static void assert_hunk_eq(
     g_assert_cmpuint(h->b.end, ==, b_end);
 }
 
+// Allows arrays to sneak by the preprocessor
+#define Arr(...) __VA_ARGS__
+
+#define Build_narrowable_data(name, n_vals, untils, values) \
+    unsigned const until_##name[n_vals] = {untils}; \
+    unsigned const values_##name[n_vals] = {values}; \
+    narrowable_data name = (narrowable_data) { \
+        .n_values = n_vals, .from = until_##name, .value = values_##name};
+
 static void single_differing_hunk_tester(
         unsigned a_start, unsigned a_end, unsigned a_length,
         unsigned b_start, unsigned b_end, unsigned b_length,
@@ -128,26 +137,20 @@ static void narrowing_differing_sizes() {
 }
 
 static void narrowing_change_at_start_a() {
-    #define n_vals 2
-    unsigned const until_a[n_vals] = {15, 30};
-    unsigned const values_a[n_vals] = {2, 1};
-    narrowable_data nda = (narrowable_data) {
-        .n_values = n_vals, .from = until_a, .value = values_a};
-    unsigned const until_b[n_vals] = {17, 32};
-    unsigned const values_b[n_vals] = {3, 1};
-    narrowable_data ndb = (narrowable_data) {
-        .n_values = n_vals, .from = until_b, .value = values_b};
-    #undef n_vals
-    hunk * rough_head = NULL, * rough_tail = NULL;
-    append_hunk(&rough_head, &rough_tail, 0, 20, 0, 22);
+    Build_narrowable_data(nda, 2, Arr(15, 30), Arr(2, 1));
+    Build_narrowable_data(ndb, 2, Arr(17, 32), Arr(3, 1));
+    hunk rough_hunks = (hunk) {
+        .a = {.start = 0, .end = 20}, .b = {.start = 0, .end = 22}};
     hunk * precise_hunks = bdiff_narrow(
-        rough_head, sizeof(unsigned), narrowable_seeker, narrowable_fetcher,
+        &rough_hunks, sizeof(unsigned), narrowable_seeker, narrowable_fetcher,
         &nda, &ndb);
     assert_hunk_eq(precise_hunks, 0, 16, 0, 18);
     g_assert_null(precise_hunks->next);
-    hunk_free(rough_head);
     hunk_free(precise_hunks);
 }
+
+#undef Arr
+#undef Build_narrowable_data
 
 int main(int argc, char **argv) {
     g_test_init(&argc, &argv, NULL);
