@@ -63,24 +63,6 @@ static void narrowable_seeker(void * source, unsigned pos) {
     nd->pos = pos;
 }
 
-static void narrowable_tools() {
-    #define n_vals 3
-    unsigned const until[n_vals] = {9, 19, 24};
-    unsigned const values[n_vals] = {0, 1, 2};
-    narrowable_data nd = (narrowable_data) {
-        .n_values = n_vals, .from = until, .value = values};
-    #undef n_vals
-    unsigned ints[25];
-    g_assert_cmpuint(25, ==, narrowable_fetcher(&nd, (char *) ints, 25));
-    g_assert_cmpuint(ints[0], ==, 0);
-    g_assert_cmpuint(ints[9], ==, 0);
-    g_assert_cmpuint(ints[10], ==, 1);
-    g_assert_cmpuint(ints[19], ==, 1);
-    g_assert_cmpuint(ints[20], ==, 2);
-    g_assert_cmpuint(ints[24], ==, 2);
-    g_assert_cmpuint(0, ==, narrowable_fetcher(&nd, (char *) ints, 25));
-}
-
 static void assert_hunk_eq(
         hunk const * const h, unsigned const a_start, unsigned const a_end,
         unsigned const b_start, unsigned const b_end) {
@@ -99,6 +81,19 @@ static void assert_hunk_eq(
     unsigned const values_##name[n_vals] = {values}; \
     narrowable_data name = (narrowable_data) { \
         .n_values = n_vals, .from = until_##name, .value = values_##name};
+
+static void narrowable_tools() {
+    Build_narrowable_data(nd, 3, Arr(9, 19, 24), Arr(0, 1, 2));
+    unsigned ints[25];
+    g_assert_cmpuint(25, ==, narrowable_fetcher(&nd, (char *) ints, 25));
+    g_assert_cmpuint(ints[0], ==, 0);
+    g_assert_cmpuint(ints[9], ==, 0);
+    g_assert_cmpuint(ints[10], ==, 1);
+    g_assert_cmpuint(ints[19], ==, 1);
+    g_assert_cmpuint(ints[20], ==, 2);
+    g_assert_cmpuint(ints[24], ==, 2);
+    g_assert_cmpuint(0, ==, narrowable_fetcher(&nd, (char *) ints, 25));
+}
 
 static void narrowing() {
     Build_narrowable_data(nda, 3, Arr(9, 19, 24), Arr(0, 1, 2));
