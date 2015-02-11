@@ -95,8 +95,7 @@ static void narrowing() {
         .n_values = n_values_b, .from = until_b, .value = values_b};
     #undef n_values_b
     hunk * rough_head = NULL, * rough_tail = NULL;
-    append_hunk(
-        &rough_head, &rough_tail, 7, 23, 7, 23);
+    append_hunk(&rough_head, &rough_tail, 7, 23, 7, 23);
     hunk * precise_hunks = bdiff_narrow(
         rough_head, sizeof(unsigned), narrowable_seeker, narrowable_fetcher,
         &nda, &ndb);
@@ -110,6 +109,32 @@ static void narrowing() {
     hunk_free(precise_hunks);
 }
 
+static void narrowing_differing_sizes() {
+    #define n_vals 3
+    unsigned const until_a[n_vals] = {9, 19, 24};
+    unsigned const values_a[n_vals] = {0, 1, 2};
+    narrowable_data nda = (narrowable_data) {
+        .n_values = n_vals, .from = until_a, .value = values_a};
+    unsigned const until_b[n_vals] = {9, 29, 34};
+    unsigned const values_b[n_vals] = {0, 3, 2};
+    narrowable_data ndb = (narrowable_data) {
+        .n_values = n_vals, .from = until_b, .value = values_b};
+    #undef n_vals
+    hunk * rough_head = NULL, * rough_tail = NULL;
+    append_hunk(&rough_head, &rough_tail, 6, 22, 6, 32);
+    hunk * precise_hunks = bdiff_narrow(
+        rough_head, sizeof(unsigned), narrowable_seeker, narrowable_fetcher,
+        &nda, &ndb);
+    g_assert_nonnull(precise_hunks);
+    g_assert_cmpuint(precise_hunks->a.start, ==, 10);
+    g_assert_cmpuint(precise_hunks->a.end, ==, 20);
+    g_assert_cmpuint(precise_hunks->b.start, ==, 10);
+    g_assert_cmpuint(precise_hunks->b.end, ==, 30);
+    g_assert_null(precise_hunks->next);
+    hunk_free(rough_head);
+    hunk_free(precise_hunks);
+}
+
 int main(int argc, char **argv) {
     g_test_init(&argc, &argv, NULL);
     add_chunk_tests();
@@ -118,5 +143,6 @@ int main(int argc, char **argv) {
     g_test_add_func("/bdiff/end_to_end", end_to_end_test);
     g_test_add_func("/bdiff/narrow_tools", narrowable_tools);
     g_test_add_func("/bdiff/narrow", narrowing);
+    g_test_add_func("/bdiff/narrow_sizes_differ", narrowing_differing_sizes);
     return g_test_run();
 }
