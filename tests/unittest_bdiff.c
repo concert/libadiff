@@ -81,6 +81,16 @@ static void narrowable_tools() {
     g_assert_cmpuint(0, ==, narrowable_fetcher(&nd, (char *) ints, 25));
 }
 
+static void assert_hunk_eq(
+        hunk const * const h, unsigned const a_start, unsigned const a_end,
+        unsigned const b_start, unsigned const b_end) {
+    g_assert_nonnull(h);
+    g_assert_cmpuint(h->a.start, ==, a_start);
+    g_assert_cmpuint(h->a.end, ==, a_end);
+    g_assert_cmpuint(h->b.start, ==, b_start);
+    g_assert_cmpuint(h->b.end, ==, b_end);
+}
+
 static void single_differing_hunk_tester(
         unsigned a_start, unsigned a_end, unsigned a_length,
         unsigned b_start, unsigned b_end, unsigned b_length,
@@ -102,11 +112,8 @@ static void single_differing_hunk_tester(
     hunk * precise_hunks = bdiff_narrow(
         rough_head, sizeof(unsigned), narrowable_seeker, narrowable_fetcher,
         &nda, &ndb);
-    g_assert_nonnull(precise_hunks);
-    g_assert_cmpuint(precise_hunks->a.start, ==, a_start + 1);
-    g_assert_cmpuint(precise_hunks->a.end, ==, a_end + 1);
-    g_assert_cmpuint(precise_hunks->b.start, ==, b_start + 1);
-    g_assert_cmpuint(precise_hunks->b.end, ==, b_end + 1);
+    assert_hunk_eq(
+        precise_hunks, a_start + 1, a_end + 1, b_start + 1, b_end + 1);
     g_assert_null(precise_hunks->next);
     hunk_free(rough_head);
     hunk_free(precise_hunks);
@@ -136,11 +143,7 @@ static void narrowing_change_at_start_a() {
     hunk * precise_hunks = bdiff_narrow(
         rough_head, sizeof(unsigned), narrowable_seeker, narrowable_fetcher,
         &nda, &ndb);
-    g_assert_nonnull(precise_hunks);
-    g_assert_cmpuint(precise_hunks->a.start, ==, 0);
-    g_assert_cmpuint(precise_hunks->a.end, ==, 16);
-    g_assert_cmpuint(precise_hunks->b.start, ==, 0);
-    g_assert_cmpuint(precise_hunks->b.end, ==, 18);
+    assert_hunk_eq(precise_hunks, 0, 16, 0, 18);
     g_assert_null(precise_hunks->next);
     hunk_free(rough_head);
     hunk_free(precise_hunks);
