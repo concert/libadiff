@@ -120,6 +120,32 @@ static void narrowing_differing_sizes() {
     single_differing_hunk_tester(9, 19, 24, 9, 29, 34, 4, 2);
 }
 
+static void narrowing_change_at_start_a() {
+    #define n_vals 2
+    unsigned const until_a[n_vals] = {15, 30};
+    unsigned const values_a[n_vals] = {2, 1};
+    narrowable_data nda = (narrowable_data) {
+        .n_values = n_vals, .from = until_a, .value = values_a};
+    unsigned const until_b[n_vals] = {17, 32};
+    unsigned const values_b[n_vals] = {3, 1};
+    narrowable_data ndb = (narrowable_data) {
+        .n_values = n_vals, .from = until_b, .value = values_b};
+    #undef n_vals
+    hunk * rough_head = NULL, * rough_tail = NULL;
+    append_hunk(&rough_head, &rough_tail, 0, 20, 0, 22);
+    hunk * precise_hunks = bdiff_narrow(
+        rough_head, sizeof(unsigned), narrowable_seeker, narrowable_fetcher,
+        &nda, &ndb);
+    g_assert_nonnull(precise_hunks);
+    g_assert_cmpuint(precise_hunks->a.start, ==, 0);
+    g_assert_cmpuint(precise_hunks->a.end, ==, 16);
+    g_assert_cmpuint(precise_hunks->b.start, ==, 0);
+    g_assert_cmpuint(precise_hunks->b.end, ==, 18);
+    g_assert_null(precise_hunks->next);
+    hunk_free(rough_head);
+    hunk_free(precise_hunks);
+}
+
 int main(int argc, char **argv) {
     g_test_init(&argc, &argv, NULL);
     add_chunk_tests();
@@ -129,5 +155,6 @@ int main(int argc, char **argv) {
     g_test_add_func("/bdiff/narrow_tools", narrowable_tools);
     g_test_add_func("/bdiff/narrow", narrowing);
     g_test_add_func("/bdiff/narrow_sizes_differ", narrowing_differing_sizes);
+    g_test_add_func("/bdiff/narrow_start_a", narrowing_change_at_start_a);
     return g_test_run();
 }
