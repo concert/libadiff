@@ -173,6 +173,23 @@ static void narrowing_change_is_end() {
     hunk_free(precise_hunks);
 }
 
+static void narrowing_multihunk() {
+    Build_narrowable_data(nda, 5, Arr(9, 19, 29, 39, 49), Arr(0, 1, 0, 1, 0));
+    Build_narrowable_data(ndb, 1, Arr(49), Arr(0));
+    hunk second_hunk = (hunk) {
+        .a = {.start = 26, .end = 45}, .b = {.start = 26, .end = 45}};
+    hunk first_hunk = (hunk) {
+        .a = {.start = 8, .end = 22}, .b = {.start = 8, .end = 22},
+        .next = &second_hunk};
+    hunk * precise_hunks = bdiff_narrow(
+        &first_hunk, sizeof(unsigned), narrowable_seeker, narrowable_fetcher,
+        &nda, &ndb);
+    assert_hunk_eq(precise_hunks, 10, 20, 10, 20);
+    assert_hunk_eq(precise_hunks->next, 30, 40, 30, 40);
+    g_assert_null(precise_hunks->next->next);
+    hunk_free(precise_hunks);
+}
+
 #undef Arr
 #undef Build_narrowable_data
 
@@ -189,5 +206,6 @@ int main(int argc, char **argv) {
     g_test_add_func("/bdiff/narrow_is_start", narrowing_change_is_start);
     g_test_add_func("/bdiff/narrow_over_end", narrowing_change_over_end);
     g_test_add_func("/bdiff/narrow_is_end", narrowing_change_is_end);
+    g_test_add_func("/bdiff/narrow_multihunk", narrowing_multihunk);
     return g_test_run();
 }
