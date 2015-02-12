@@ -37,6 +37,22 @@ static adiff_return_code info_cmp(const lsf_wrapped a, const lsf_wrapped b) {
     return ADIFF_OK;
 }
 
+static unsigned short_fetcher(void * source, char * buffer, unsigned n_items) {
+  return sf_readf_short((SNDFILE * const) source, (short *) buffer, n_items);
+}
+
+static unsigned int_fetcher(void * source, char * buffer, unsigned n_items) {
+  return sf_readf_int((SNDFILE * const) source, (int *) buffer, n_items);
+}
+
+static unsigned float_fetcher(void * source, char * buffer, unsigned n_items) {
+  return sf_readf_float((SNDFILE * const) source, (float *) buffer, n_items);
+}
+
+static unsigned double_fetcher(void * source, char * buffer, unsigned n_items) {
+  return sf_readf_double((SNDFILE * const) source, (double *) buffer, n_items);
+}
+
 typedef struct {
     data_fetcher const fetcher;
     const size_t sample_size;
@@ -48,22 +64,18 @@ static fetcher_info get_fetcher(lsf_wrapped const f) {
         case SF_FORMAT_PCM_U8:
         case SF_FORMAT_PCM_16:
             return (fetcher_info) {
-                .fetcher = (data_fetcher) sf_readf_short,
-                .sample_size = sizeof(short)};
+	        .fetcher = short_fetcher, .sample_size = sizeof(short)};
         case SF_FORMAT_PCM_24:
         case SF_FORMAT_PCM_32:
             return (fetcher_info) {
-                .fetcher = (data_fetcher) sf_readf_int,
-                .sample_size = sizeof(int)};
+	        .fetcher = int_fetcher, .sample_size = sizeof(int)};
         case SF_FORMAT_FLOAT:
             return (fetcher_info) {
-                .fetcher = (data_fetcher) sf_readf_float,
-                .sample_size = sizeof(float)};
+                .fetcher = float_fetcher, .sample_size = sizeof(float)};
         case SF_FORMAT_DOUBLE:
         default:
             return (fetcher_info) {
-                .fetcher = (data_fetcher) sf_readf_double,
-                .sample_size = sizeof(double)};
+                .fetcher = double_fetcher, .sample_size = sizeof(double)};
     }
 }
 
