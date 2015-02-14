@@ -134,7 +134,7 @@ static adiff_fixture create_fixture() {
 
 static void cleanup_fixture(adiff_fixture f) {
     #define rm_free(element) \
-        remove(f.element); \
+        g_assert_cmpint(remove(f.element), ==, 0); \
         g_free(f.element);
     rm_free(short0)
     rm_free(short1)
@@ -219,17 +219,20 @@ static void files_identical(char const * const a, char const * const b) {
     gchar * a_contents = NULL;
     gsize a_length = 0;
     GError * error = NULL;
-    g_file_get_contents(a, &a_contents, &a_length, &error);
-    g_assert_null(error);
+    g_assert(g_file_get_contents(a, &a_contents, &a_length, &error));
+    g_assert_no_error(error);
     g_assert_cmpuint(a_length, >, 0);
     gchar * b_contents = NULL;
     gsize b_length = 0;
-    g_file_get_contents(b, &b_contents, &b_length, &error);
-    g_assert_null(error);
+    g_assert(g_file_get_contents(b, &b_contents, &b_length, &error));
+    g_assert_no_error(error);
     g_assert_cmpuint(a_length, ==, b_length);
     for (gsize i = 0; i < a_length; i++) {
         if (a_contents[i] != b_contents[i]) {
-            g_assert_cmpuint(i, <, i);
+            printf(
+                "Byte %" G_GSIZE_FORMAT " of %" G_GSIZE_FORMAT
+                " differed\n", i, a_length);
+            g_test_fail();
         }
     }
     g_free(a_contents);
