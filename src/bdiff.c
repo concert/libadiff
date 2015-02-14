@@ -87,7 +87,6 @@ hunk * const bdiff_narrow(
             rough_hunks->b.end - (rough_hunks->b.start + start_delta));
         end_delta = min(end_delta, max_chunk_size);
         if (end_delta) {
-            end_delta--;
             ds(a, rough_hunks->a.end - end_delta);
             ds(b, rough_hunks->b.end - end_delta);
             end_delta = find_end_delta(
