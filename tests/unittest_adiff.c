@@ -264,11 +264,9 @@ static void assert_riff_equivalent_possibly_newer(
             a_size -= 2 * sizeof(uint32_t);
         }
         // Binary diff the rest
-        for (gsize i = 0; i < a_size; i++) {
+        for (uint32_t i = 0; i < a_size; i++) {
             if (a_contents[i] != b_contents[i]) {
-                printf(
-                    "Byte %" G_GSIZE_FORMAT " of %u"
-                    " (chunk %s) differed\n", i, a_size, a_id);
+                printf("Byte %u of %u (chunk %s) differed\n", i, a_size, a_id);
                 g_test_fail();
             }
         }
