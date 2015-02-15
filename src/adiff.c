@@ -85,7 +85,7 @@ static diff cmp(const lsf_wrapped a, const lsf_wrapped b) {
         fetcher_info const fi = get_fetcher(a);
         return (diff) {
             .code = ret_code,
-            .hunks = bdiff(
+            .hunks = bdiff_rough(
                 fi.sample_size * a.info.channels, fi.fetcher,
                 (void *) a.file, (void *) b.file)};
     }

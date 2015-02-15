@@ -5,14 +5,14 @@
 #include "fake_fetcher.h"
 #include "../include/bdiff.h"
 
-static void end_to_end_test() {
+static void bdiff_rough_test() {
     fake_fetcher_data dfa = {
         .g_rand = g_rand_new_with_seed(212), .first_length = 600,
         .second_length = 10000};
     fake_fetcher_data dfb = {
         .g_rand = g_rand_new_with_seed(121), .first_length = 400,
         .second_length = 9000};
-    hunk * const h = bdiff(sizeof(guint32), fake_fetcher, &dfa, &dfb);
+    hunk * const h = bdiff_rough(sizeof(guint32), fake_fetcher, &dfa, &dfb);
     g_assert_nonnull(h);
     g_assert_cmpuint(h->a.start, ==, 0);
     g_assert_cmpuint(h->b.start, ==, 0);
@@ -198,7 +198,7 @@ int main(int argc, char **argv) {
     add_chunk_tests();
     add_hash_counting_table_tests();
     add_hunk_tests();
-    g_test_add_func("/bdiff/end_to_end", end_to_end_test);
+    g_test_add_func("/bdiff/rough", bdiff_rough_test);
     g_test_add_func("/bdiff/narrow_tools", narrowable_tools);
     g_test_add_func("/bdiff/narrow", narrowing);
     g_test_add_func("/bdiff/narrow_sizes_differ", narrowing_differing_sizes);

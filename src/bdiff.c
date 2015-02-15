@@ -6,7 +6,7 @@
 
 static unsigned const max_chunk_size = 10000;
 
-hunk * const bdiff(
+hunk * const bdiff_rough(
         unsigned const sample_size, data_fetcher const df, void * const a,
         void * const b) {
     chunks a_chunks = split_data(sample_size, df, a, 10, max_chunk_size);
@@ -100,4 +100,14 @@ hunk * const bdiff_narrow(
             rough_hunks->b.end - end_delta);
     }
     return precise_hunks_head;
+}
+
+hunk * const bdiff(
+        unsigned const sample_size, data_seeker const ds,
+        data_fetcher const df, void * const a, void * const b) {
+    hunk * const rough_hunks = bdiff_rough(sample_size, df, a, b);
+    hunk * const precise_hunks = bdiff_narrow(
+        rough_hunks, sample_size, ds, df, a, b);
+    hunk_free(rough_hunks);
+    return precise_hunks;
 }
