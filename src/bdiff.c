@@ -28,6 +28,7 @@ static unsigned find_start_delta(
         char * const buf_b, void * const a, void * const b) {
     unsigned delta_offset = 0;
     while (1) {
+        assert(delta_offset <= max_chunk_size);
         unsigned const n_read_a = df(a, buf_a, buf_size/sample_size);
         unsigned const n_read_b = df(b, buf_b, buf_size/sample_size);
         unsigned const min_read = min(n_read_a, n_read_b);
@@ -54,6 +55,7 @@ static unsigned find_end_delta(
     while (loop_start_delta) {
         unsigned const n_read = df(
             a, buf_a, min(buf_size/sample_size, loop_start_delta));
+        assert(n_read != 0);
         assert(df(b, buf_b, n_read) == n_read);
         for (
                 unsigned byte_idx = 0; byte_idx < (sample_size * n_read);
