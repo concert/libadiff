@@ -171,6 +171,14 @@ static void narrowing_change_is_end() {
     assert_hunk_eq(precise_hunks, 30, 30, 30, 38);
     g_assert_null(precise_hunks->next);
     hunk_free(precise_hunks);
+    rough_hunks = (hunk) {
+        .a = {.start = 12, .end = 38}, .b = {.start = 12, .end = 30}};
+    precise_hunks = bdiff_narrow(
+        &rough_hunks, sizeof(unsigned), narrowable_seeker, narrowable_fetcher,
+        &ndb, &nda);
+    assert_hunk_eq(precise_hunks, 30, 38, 30, 30);
+    g_assert_null(precise_hunks->next);
+    hunk_free(precise_hunks);
 }
 
 static void narrowing_multihunk() {
