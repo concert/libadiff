@@ -1,4 +1,6 @@
 #include <unistd.h>
+#include <stdint.h>
+#include <string.h>
 #include <glib.h>
 #include <sndfile.h>
 #include "../include/adiff.h"
@@ -134,7 +136,7 @@ static adiff_fixture create_fixture() {
 
 static void cleanup_fixture(adiff_fixture f) {
     #define rm_free(element) \
-        remove(f.element); \
+        g_assert_cmpint(remove(f.element), ==, 0); \
         g_free(f.element);
     rm_free(short0)
     rm_free(short1)
@@ -213,25 +215,82 @@ static void diff_assertions(
     g_assert_null(h2->next);
 }
 
+static gchar * riff_id(gchar const * const content) {
+    static gchar identifier[5] = {};
+    memcpy(identifier, content, 4);
+    return identifier;
+}
+
+static void assert_riff_equivalent_possibly_newer(
+        gchar const * a_contents, gchar const * b_contents, gsize length) {
+    g_assert_cmpuint(length, >=, 4);
+    g_assert_cmpstr(riff_id(a_contents), ==, "RIFF");
+    g_assert_cmpstr(riff_id(b_contents), ==, "RIFF");
+    #define Advance(n) length -= n; a_contents += n; b_contents += n;
+    Advance(4)
+    g_assert_cmpuint(length, >=, 4);
+    // The following will go wrong on big endian architectures:
+    #define to_uint(buf) *((uint32_t *) buf)
+    uint32_t a_size = to_uint(a_contents);
+    uint32_t b_size = to_uint(b_contents);
+    g_assert_cmpuint(a_size, ==, length - 4);
+    g_assert_cmpuint(b_size, ==, length - 4);
+    Advance(sizeof(uint32_t))
+    g_assert_cmpuint(length, >=, 4);
+    g_assert_cmpstr(riff_id(a_contents), ==, "WAVE");
+    g_assert_cmpstr(riff_id(b_contents), ==, "WAVE");
+    Advance(4)
+    while (length) {
+        g_assert_cmpuint(length, >=, 4 + sizeof(uint32_t));
+        gchar const * const a_id = riff_id(a_contents);
+        gchar const * const b_id = riff_id(b_contents);
+        g_assert_cmpstr(a_id, ==, b_id);
+        Advance(4)
+        a_size = to_uint(a_contents);
+        b_size = to_uint(b_contents);
+        g_assert_cmpuint(a_size, ==, b_size);
+        g_assert_cmpuint(a_size, <=, length - 4);
+        Advance(4)
+        if (!strcmp(a_id, "PEAK")) {
+            // PEAK subchunk
+            g_assert_cmpuint(a_size, >=, 2 * sizeof(uint32_t));
+            // Version:
+            g_assert_cmpuint(to_uint(a_contents), ==, 1);
+            g_assert_cmpuint(to_uint(b_contents), ==, 1);
+            Advance(sizeof(uint32_t))
+            // Timestamp:
+            g_assert_cmpuint(to_uint(a_contents), <=, to_uint(b_contents));
+            Advance(sizeof(uint32_t))
+            a_size -= 2 * sizeof(uint32_t);
+        }
+        // Binary diff the rest
+        for (uint32_t i = 0; i < a_size; i++) {
+            if (a_contents[i] != b_contents[i]) {
+                printf("Byte %u of %u (chunk %s) differed\n", i, a_size, a_id);
+                g_test_fail();
+            }
+        }
+        Advance(a_size)
+    }
+    #undef to_uint
+    #undef Advance
+}
+
 static void files_identical(char const * const a, char const * const b) {
     // Not that memory efficient, it uses twice the size of the files, but this
     // is a unit test and the files are pretty small (O(kb))
     gchar * a_contents = NULL;
     gsize a_length = 0;
     GError * error = NULL;
-    g_file_get_contents(a, &a_contents, &a_length, &error);
-    g_assert_null(error);
+    g_assert(g_file_get_contents(a, &a_contents, &a_length, &error));
+    g_assert_no_error(error);
     g_assert_cmpuint(a_length, >, 0);
     gchar * b_contents = NULL;
     gsize b_length = 0;
-    g_file_get_contents(b, &b_contents, &b_length, &error);
-    g_assert_null(error);
+    g_assert(g_file_get_contents(b, &b_contents, &b_length, &error));
+    g_assert_no_error(error);
     g_assert_cmpuint(a_length, ==, b_length);
-    for (gsize i = 0; i < a_length; i++) {
-        if (a_contents[i] != b_contents[i]) {
-            g_assert_cmpuint(i, <, i);
-        }
-    }
+    assert_riff_equivalent_possibly_newer(a_contents, b_contents, a_length);
     g_free(a_contents);
     g_free(b_contents);
 }
