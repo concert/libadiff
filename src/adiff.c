@@ -79,14 +79,19 @@ static fetcher_info get_fetcher(lsf_wrapped const f) {
     }
 }
 
+static void seeker(void * const source, unsigned const pos) {
+    // Should be error checked (-1 rval):
+    sf_seek((SNDFILE * const) source, pos, SEEK_SET);
+}
+
 static diff cmp(const lsf_wrapped a, const lsf_wrapped b) {
     adiff_return_code ret_code = info_cmp(a, b);
     if (ret_code == ADIFF_OK) {
         fetcher_info const fi = get_fetcher(a);
         return (diff) {
             .code = ret_code,
-            .hunks = bdiff_rough(
-                fi.sample_size * a.info.channels, fi.fetcher,
+            .hunks = bdiff(
+                fi.sample_size * a.info.channels, seeker, fi.fetcher,
                 (void *) a.file, (void *) b.file)};
     }
     return (diff) {.code = ret_code};
