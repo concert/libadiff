@@ -79,39 +79,39 @@ hunk * const bdiff_narrow(
         data_fetcher const df, void * const a, void * const b) {
     hunk * precise_hunks_head = NULL, * precise_hunks_tail = NULL;
     for (; rough_hunks != NULL; rough_hunks = rough_hunks->next) {
-        hunk precise_hunk = *rough_hunks;
-        ds(a, rough_hunks->a.start);
-        ds(b, rough_hunks->b.start);
+        append_hunk(
+            &precise_hunks_head, &precise_hunks_tail, rough_hunks->a.start,
+            rough_hunks->a.end, rough_hunks->b.start, rough_hunks->b.end);
+        ds(a, precise_hunks_tail->a.start);
+        ds(b, precise_hunks_tail->b.start);
         char buf_a[buf_size], buf_b[buf_size];
         unsigned const start_delta = find_start_delta(
             df, sample_size, buf_a, buf_b, a, b);
-        precise_hunk.a.start += start_delta;
-        precise_hunk.b.start += start_delta;
+        precise_hunks_tail->a.start += start_delta;
+        precise_hunks_tail->b.start += start_delta;
         unsigned end_shove = 0;
-        if (precise_hunk.a.start > rough_hunks->a.end) {
-            end_shove = precise_hunk.a.start - precise_hunk.a.end;
+        if (precise_hunks_tail->a.start > precise_hunks_tail->a.end) {
+            end_shove =
+                precise_hunks_tail->a.start - precise_hunks_tail->a.end;
         }
-        if (precise_hunk.b.start > rough_hunks->b.end) {
-            end_shove = precise_hunk.b.start - precise_hunk.b.end;
+        if (precise_hunks_tail->b.start > precise_hunks_tail->b.end) {
+            end_shove =
+                precise_hunks_tail->b.start - precise_hunks_tail->b.end;
         }
-        precise_hunk.a.end += end_shove;
-        precise_hunk.b.end += end_shove;
+        precise_hunks_tail->a.end += end_shove;
+        precise_hunks_tail->b.end += end_shove;
         unsigned end_delta = min(
-            precise_hunk.a.end - precise_hunk.a.start,
-            precise_hunk.b.end - precise_hunk.b.start);
+            precise_hunks_tail->a.end - precise_hunks_tail->a.start,
+            precise_hunks_tail->b.end - precise_hunks_tail->b.start);
         end_delta = min(end_delta, max_chunk_size);
         if (end_delta) {
-            ds(a, rough_hunks->a.end - end_delta);
-            ds(b, rough_hunks->b.end - end_delta);
+            ds(a, precise_hunks_tail->a.end - end_delta);
+            ds(b, precise_hunks_tail->b.end - end_delta);
             end_delta = find_end_delta(
                 df, sample_size, end_delta, buf_a, buf_b, a, b);
         }
-        append_hunk(
-            &precise_hunks_head, &precise_hunks_tail,
-            precise_hunk.a.start,
-            precise_hunk.a.end - end_delta,
-            precise_hunk.b.start,
-            precise_hunk.b.end - end_delta);
+        precise_hunks_tail->a.end -= end_delta;
+        precise_hunks_tail->b.end -= end_delta;
     }
     return precise_hunks_head;
 }
