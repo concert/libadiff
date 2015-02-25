@@ -5,25 +5,25 @@
 #include "fake_fetcher.h"
 #include "../include/bdiff.h"
 
-static void end_to_end_test() {
+static void bdiff_rough_test() {
     fake_fetcher_data dfa = {
         .g_rand = g_rand_new_with_seed(212), .first_length = 600,
         .second_length = 10000};
     fake_fetcher_data dfb = {
         .g_rand = g_rand_new_with_seed(121), .first_length = 400,
         .second_length = 9000};
-    hunk * const h = bdiff(sizeof(guint32), fake_fetcher, &dfa, &dfb);
+    hunk * const h = bdiff_rough(sizeof(guint32), fake_fetcher, &dfa, &dfb);
     g_assert_nonnull(h);
     g_assert_cmpuint(h->a.start, ==, 0);
     g_assert_cmpuint(h->b.start, ==, 0);
-    g_assert_cmpuint(h->a.end, >=, 601);
-    g_assert_cmpuint(h->b.end, >=, 401);
+    g_assert_cmpuint(h->a.end, >=, 600);
+    g_assert_cmpuint(h->b.end, >=, 400);
     hunk const * const h2 = h->next;
     g_assert_nonnull(h2);
-    g_assert_cmpuint(h2->a.start, <=, 9401 + 200);
+    g_assert_cmpuint(h2->a.start, <=, 9400 + 200);
     g_assert_cmpuint(h2->b.start + 200, ==, h2->a.start);
-    g_assert_cmpuint(h2->a.end, ==, 10601);
-    g_assert_cmpuint(h2->b.end, ==, 9401);
+    g_assert_cmpuint(h2->a.end, ==, 10600);
+    g_assert_cmpuint(h2->b.end, ==, 9400);
     g_assert_null(h2->next);
     hunk_free(h);
     g_rand_free(dfa.g_rand);
@@ -60,6 +60,7 @@ static unsigned narrowable_fetcher(
 
 static void narrowable_seeker(void * source, unsigned pos) {
     narrowable_data * nd = source;
+    g_assert_cmpuint(pos, <=, nd->from[nd->n_values - 1]);
     nd->pos = pos;
 }
 
@@ -121,6 +122,19 @@ static void narrowing_differing_sizes() {
     hunk_free(precise_hunks);
 }
 
+static void narrowing_insertion() {
+    Build_narrowable_data(nda, 3, Arr(9, 19, 24), Arr(0, 1, 0));
+    Build_narrowable_data(ndb, 1, Arr(14), Arr(0));
+    hunk rough_hunks = (hunk) {
+        .a = {.start = 10, .end = 20}, .b = {.start = 10, .end = 10}};
+    hunk * precise_hunks = bdiff_narrow(
+        &rough_hunks, sizeof(unsigned), narrowable_seeker, narrowable_fetcher,
+        &nda, &ndb);
+    assert_hunk_eq(precise_hunks, 10, 20, 10, 10);
+    g_assert_null(precise_hunks->next);
+    hunk_free(precise_hunks);
+}
+
 static void narrowing_change_over_start() {
     Build_narrowable_data(nda, 2, Arr(15, 30), Arr(2, 1));
     Build_narrowable_data(ndb, 2, Arr(17, 32), Arr(3, 1));
@@ -171,6 +185,14 @@ static void narrowing_change_is_end() {
     assert_hunk_eq(precise_hunks, 30, 30, 30, 38);
     g_assert_null(precise_hunks->next);
     hunk_free(precise_hunks);
+    rough_hunks = (hunk) {
+        .a = {.start = 12, .end = 38}, .b = {.start = 12, .end = 30}};
+    precise_hunks = bdiff_narrow(
+        &rough_hunks, sizeof(unsigned), narrowable_seeker, narrowable_fetcher,
+        &ndb, &nda);
+    assert_hunk_eq(precise_hunks, 30, 38, 30, 30);
+    g_assert_null(precise_hunks->next);
+    hunk_free(precise_hunks);
 }
 
 static void narrowing_multihunk() {
@@ -190,6 +212,59 @@ static void narrowing_multihunk() {
     hunk_free(precise_hunks);
 }
 
+static void narrowing_long_hunk() {
+    Build_narrowable_data(nda, 3, Arr(15000, 65000, 70000), Arr(0, 1, 0));
+    Build_narrowable_data(ndb, 1, Arr(70000), Arr(0));
+    hunk rough_hunks = (hunk) {
+        .a = {.start = 7324, .end = 69237},
+        .b = {.start = 7324, .end = 69237}};
+    hunk * precise_hunks = bdiff_narrow(
+        &rough_hunks, sizeof(unsigned), narrowable_seeker, narrowable_fetcher,
+        &nda, &ndb);
+    assert_hunk_eq(precise_hunks, 15001, 65001, 15001, 65001);
+    g_assert_null(precise_hunks->next);
+    hunk_free(precise_hunks);
+}
+
+static void bdiff_combined_change() {
+    Build_narrowable_data(nda, 3, Arr(150, 650, 700), Arr(0, 1, 0));
+    Build_narrowable_data(ndb, 3, Arr(150, 650, 700), Arr(0, 2, 0));
+    hunk * hunks = bdiff(
+        sizeof(unsigned), narrowable_seeker, narrowable_fetcher, &nda, &ndb);
+    assert_hunk_eq(hunks, 151, 651, 151, 651);
+    g_assert_null(hunks->next);
+    hunk_free(hunks);
+}
+
+static void bdiff_combined_insertion() {
+    Build_narrowable_data(nda, 3, Arr(150, 650, 700), Arr(0, 1, 2));
+    Build_narrowable_data(ndb, 2, Arr(150, 200), Arr(0, 2));
+    hunk * hunks = bdiff(
+        sizeof(unsigned), narrowable_seeker, narrowable_fetcher, &nda, &ndb);
+    assert_hunk_eq(hunks, 151, 651, 151, 151);
+    g_assert_null(hunks->next);
+    hunk_free(hunks);
+}
+
+static void bdiff_combined_insertion_same_either_side() {
+    Build_narrowable_data(nda, 3, Arr(150, 650, 700), Arr(0, 1, 0));
+    Build_narrowable_data(ndb, 1, Arr(200), Arr(0));
+    hunk * hunks = bdiff(
+        sizeof(unsigned), narrowable_seeker, narrowable_fetcher, &nda, &ndb);
+    g_assert_cmpuint(hunks->a.start, ==, 151);
+    g_assert_cmpuint(hunks->a.end, >=, 651);
+    g_assert_cmpuint(hunks->b.start, ==, 151);
+    g_assert_cmpuint(hunks->b.end, ==, 151);
+    // Because the chunking doesn't quite line up with the boundaries the first
+    // hunk contains some common parts, so we check that what was missing is
+    // counteracted at the end so the diff will patch correctly.
+    unsigned const ahead_by = hunks->a.end - 651;
+    g_assert_cmpuint(ahead_by, <, 201);
+    assert_hunk_eq(hunks->next, 701, 701, 201 - ahead_by, 201);
+    g_assert_null(hunks->next->next);
+    hunk_free(hunks);
+}
+
 #undef Arr
 #undef Build_narrowable_data
 
@@ -198,14 +273,21 @@ int main(int argc, char **argv) {
     add_chunk_tests();
     add_hash_counting_table_tests();
     add_hunk_tests();
-    g_test_add_func("/bdiff/end_to_end", end_to_end_test);
+    g_test_add_func("/bdiff/rough", bdiff_rough_test);
     g_test_add_func("/bdiff/narrow_tools", narrowable_tools);
     g_test_add_func("/bdiff/narrow", narrowing);
     g_test_add_func("/bdiff/narrow_sizes_differ", narrowing_differing_sizes);
+    g_test_add_func("/bdiff/narrow_insertion", narrowing_insertion);
     g_test_add_func("/bdiff/narrow_over_start", narrowing_change_over_start);
     g_test_add_func("/bdiff/narrow_is_start", narrowing_change_is_start);
     g_test_add_func("/bdiff/narrow_over_end", narrowing_change_over_end);
     g_test_add_func("/bdiff/narrow_is_end", narrowing_change_is_end);
     g_test_add_func("/bdiff/narrow_multihunk", narrowing_multihunk);
+    g_test_add_func("/bdiff/narrow_long", narrowing_long_hunk);
+    g_test_add_func("/bdiff/combined_change", bdiff_combined_change);
+    g_test_add_func("/bdiff/combined_insert", bdiff_combined_insertion);
+    g_test_add_func(
+        "/bdiff/combined_highly_repetitive",
+        bdiff_combined_insertion_same_either_side);
     return g_test_run();
 }

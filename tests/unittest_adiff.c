@@ -204,14 +204,14 @@ static void diff_assertions(
     g_assert_nonnull(h);
     g_assert_cmpuint(h->a.start, ==, 0);
     g_assert_cmpuint(h->b.start, ==, 0);
-    g_assert_cmpuint(h->a.end, >=, a->first_length + 1);
-    g_assert_cmpuint(h->b.end, >=, b->first_length + 1);
+    g_assert_cmpuint(h->a.end, >=, a->first_length);
+    g_assert_cmpuint(h->b.end, >=, b->first_length);
     hunk const * const h2 = h->next;
     g_assert_nonnull(h2);
     g_assert_cmpuint(h2->b.start, <=, b->pos);
     g_assert_cmpuint(h2->a.start + 200, ==, h2->b.start);
-    g_assert_cmpuint(h2->a.end, ==, a->pos + 1);
-    g_assert_cmpuint(h2->b.end, ==, b->pos + 1);
+    g_assert_cmpuint(h2->a.end, ==, a->pos);
+    g_assert_cmpuint(h2->b.end, ==, b->pos);
     g_assert_null(h2->next);
 }
 

@@ -71,7 +71,7 @@ chunks const split_data(
         }
     } while (samples_read);
     if (total_samples_read > start_pos) {
-        tail = chunk_new(tail, start_pos, total_samples_read + 1, hd.h);
+        tail = chunk_new(tail, start_pos, total_samples_read, hd.h);
         if (head == NULL) {
             head = tail;
         }

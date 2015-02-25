@@ -6,7 +6,7 @@
 
 static unsigned const max_chunk_size = 10000;
 
-hunk * const bdiff(
+hunk * const bdiff_rough(
         unsigned const sample_size, data_fetcher const df, void * const a,
         void * const b) {
     chunks a_chunks = split_data(sample_size, df, a, 10, max_chunk_size);
@@ -28,6 +28,7 @@ static unsigned find_start_delta(
         char * const buf_b, void * const a, void * const b) {
     unsigned delta_offset = 0;
     while (1) {
+        assert(delta_offset <= max_chunk_size);
         unsigned const n_read_a = df(a, buf_a, buf_size/sample_size);
         unsigned const n_read_b = df(b, buf_b, buf_size/sample_size);
         unsigned const min_read = min(n_read_a, n_read_b);
@@ -54,6 +55,7 @@ static unsigned find_end_delta(
     while (loop_start_delta) {
         unsigned const n_read = df(
             a, buf_a, min(buf_size/sample_size, loop_start_delta));
+        assert(n_read != 0);
         assert(df(b, buf_b, n_read) == n_read);
         for (
                 unsigned byte_idx = 0; byte_idx < (sample_size * n_read);
@@ -77,27 +79,49 @@ hunk * const bdiff_narrow(
         data_fetcher const df, void * const a, void * const b) {
     hunk * precise_hunks_head = NULL, * precise_hunks_tail = NULL;
     for (; rough_hunks != NULL; rough_hunks = rough_hunks->next) {
-        ds(a, rough_hunks->a.start);
-        ds(b, rough_hunks->b.start);
+        append_hunk(
+            &precise_hunks_head, &precise_hunks_tail, rough_hunks->a.start,
+            rough_hunks->a.end, rough_hunks->b.start, rough_hunks->b.end);
+        ds(a, precise_hunks_tail->a.start);
+        ds(b, precise_hunks_tail->b.start);
         char buf_a[buf_size], buf_b[buf_size];
         unsigned const start_delta = find_start_delta(
             df, sample_size, buf_a, buf_b, a, b);
+        precise_hunks_tail->a.start += start_delta;
+        precise_hunks_tail->b.start += start_delta;
+        unsigned end_shove = 0;
+        if (precise_hunks_tail->a.start > precise_hunks_tail->a.end) {
+            end_shove =
+                precise_hunks_tail->a.start - precise_hunks_tail->a.end;
+        }
+        if (precise_hunks_tail->b.start > precise_hunks_tail->b.end) {
+            end_shove =
+                precise_hunks_tail->b.start - precise_hunks_tail->b.end;
+        }
+        precise_hunks_tail->a.end += end_shove;
+        precise_hunks_tail->b.end += end_shove;
         unsigned end_delta = min(
-            rough_hunks->a.end - (rough_hunks->a.start + start_delta),
-            rough_hunks->b.end - (rough_hunks->b.start + start_delta));
+            precise_hunks_tail->a.end - precise_hunks_tail->a.start,
+            precise_hunks_tail->b.end - precise_hunks_tail->b.start);
         end_delta = min(end_delta, max_chunk_size);
         if (end_delta) {
-            ds(a, rough_hunks->a.end - end_delta);
-            ds(b, rough_hunks->b.end - end_delta);
+            ds(a, precise_hunks_tail->a.end - end_delta);
+            ds(b, precise_hunks_tail->b.end - end_delta);
             end_delta = find_end_delta(
                 df, sample_size, end_delta, buf_a, buf_b, a, b);
         }
-        append_hunk(
-            &precise_hunks_head, &precise_hunks_tail,
-            rough_hunks->a.start + start_delta,
-            rough_hunks->a.end - end_delta,
-            rough_hunks->b.start + start_delta,
-            rough_hunks->b.end - end_delta);
+        precise_hunks_tail->a.end -= end_delta;
+        precise_hunks_tail->b.end -= end_delta;
     }
     return precise_hunks_head;
+}
+
+hunk * const bdiff(
+        unsigned const sample_size, data_seeker const ds,
+        data_fetcher const df, void * const a, void * const b) {
+    hunk * const rough_hunks = bdiff_rough(sample_size, df, a, b);
+    hunk * const precise_hunks = bdiff_narrow(
+        rough_hunks, sample_size, ds, df, a, b);
+    hunk_free(rough_hunks);
+    return precise_hunks;
 }
