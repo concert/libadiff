@@ -237,12 +237,31 @@ static void bdiff_combined_change() {
 }
 
 static void bdiff_combined_insertion() {
-    Build_narrowable_data(nda, 3, Arr(150, 650, 700), Arr(0, 1, 0));
-    Build_narrowable_data(ndb, 1, Arr(200), Arr(0));
+    Build_narrowable_data(nda, 3, Arr(150, 650, 700), Arr(0, 1, 2));
+    Build_narrowable_data(ndb, 2, Arr(150, 200), Arr(0, 2));
     hunk * hunks = bdiff(
         sizeof(unsigned), narrowable_seeker, narrowable_fetcher, &nda, &ndb);
     assert_hunk_eq(hunks, 151, 651, 151, 151);
     g_assert_null(hunks->next);
+    hunk_free(hunks);
+}
+
+static void bdiff_combined_insertion_same_either_side() {
+    Build_narrowable_data(nda, 3, Arr(150, 650, 700), Arr(0, 1, 0));
+    Build_narrowable_data(ndb, 1, Arr(200), Arr(0));
+    hunk * hunks = bdiff(
+        sizeof(unsigned), narrowable_seeker, narrowable_fetcher, &nda, &ndb);
+    g_assert_cmpuint(hunks->a.start, ==, 151);
+    g_assert_cmpuint(hunks->a.end, >=, 651);
+    g_assert_cmpuint(hunks->b.start, ==, 151);
+    g_assert_cmpuint(hunks->b.end, ==, 151);
+    // Because the chunking doesn't quite line up with the boundaries the first
+    // hunk contains some common parts, so we check that what was missing is
+    // counteracted at the end so the diff will patch correctly.
+    unsigned const ahead_by = hunks->a.end - 651;
+    g_assert_cmpuint(ahead_by, <, 201);
+    assert_hunk_eq(hunks->next, 701, 701, 201 - ahead_by, 201);
+    g_assert_null(hunks->next->next);
     hunk_free(hunks);
 }
 
@@ -267,5 +286,8 @@ int main(int argc, char **argv) {
     g_test_add_func("/bdiff/narrow_long", narrowing_long_hunk);
     g_test_add_func("/bdiff/combined_change", bdiff_combined_change);
     g_test_add_func("/bdiff/combined_insert", bdiff_combined_insertion);
+    g_test_add_func(
+        "/bdiff/combined_highly_repetitive",
+        bdiff_combined_insertion_same_either_side);
     return g_test_run();
 }
