@@ -252,16 +252,10 @@ static void bdiff_combined_insertion_same_either_side() {
     hunk * hunks = bdiff(
         sizeof(unsigned), narrowable_seeker, narrowable_fetcher, &nda, &ndb);
     g_assert_cmpuint(hunks->a.start, ==, 151);
-    g_assert_cmpuint(hunks->a.end, >=, 651);
+    g_assert_cmpuint(hunks->a.end, ==, 651);
     g_assert_cmpuint(hunks->b.start, ==, 151);
     g_assert_cmpuint(hunks->b.end, ==, 151);
-    // Because the chunking doesn't quite line up with the boundaries the first
-    // hunk contains some common parts, so we check that what was missing is
-    // counteracted at the end so the diff will patch correctly.
-    unsigned const ahead_by = hunks->a.end - 651;
-    g_assert_cmpuint(ahead_by, <, 201);
-    assert_hunk_eq(hunks->next, 701, 701, 201 - ahead_by, 201);
-    g_assert_null(hunks->next->next);
+    g_assert_null(hunks->next);
     hunk_free(hunks);
 }
 

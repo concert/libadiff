@@ -23,6 +23,10 @@ static inline unsigned min(unsigned a, unsigned b) {
     return (a < b) ? a : b;
 }
 
+static inline unsigned max(unsigned a, unsigned b) {
+    return (a > b) ? a : b;
+}
+
 static unsigned find_start_delta(
         data_fetcher const df, unsigned const sample_size, char * const buf_a,
         char * const buf_b, void * const a, void * const b) {
@@ -78,6 +82,7 @@ hunk * const bdiff_narrow(
         hunk * rough_hunks, unsigned const sample_size, data_seeker const ds,
         data_fetcher const df, void * const a, void * const b) {
     hunk * precise_hunks_head = NULL, * precise_hunks_tail = NULL;
+    unsigned end_shove_a = 0, end_shove_b = 0;
     for (; rough_hunks != NULL; rough_hunks = rough_hunks->next) {
         append_hunk(
             &precise_hunks_head, &precise_hunks_tail, rough_hunks->a.start,
@@ -89,17 +94,18 @@ hunk * const bdiff_narrow(
             df, sample_size, buf_a, buf_b, a, b);
         precise_hunks_tail->a.start += start_delta;
         precise_hunks_tail->b.start += start_delta;
-        unsigned end_shove = 0;
+        end_shove_a = end_shove_b = 0;
         if (precise_hunks_tail->a.start > precise_hunks_tail->a.end) {
-            end_shove =
+            end_shove_a =
                 precise_hunks_tail->a.start - precise_hunks_tail->a.end;
         }
         if (precise_hunks_tail->b.start > precise_hunks_tail->b.end) {
-            end_shove =
+            end_shove_b =
                 precise_hunks_tail->b.start - precise_hunks_tail->b.end;
         }
-        precise_hunks_tail->a.end += end_shove;
-        precise_hunks_tail->b.end += end_shove;
+        assert(!(end_shove_a && end_shove_b));
+        precise_hunks_tail->a.end += max(end_shove_a, end_shove_b);
+        precise_hunks_tail->b.end += max(end_shove_a, end_shove_b);
         unsigned end_delta = min(
             precise_hunks_tail->a.end - precise_hunks_tail->a.start,
             precise_hunks_tail->b.end - precise_hunks_tail->b.start);
