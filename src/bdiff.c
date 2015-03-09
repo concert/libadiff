@@ -73,6 +73,29 @@ static unsigned find_end_delta(
     return end_delta;
 }
 
+static unsigned slidey_aligner(
+        unsigned const sample_size, data_seeker const ds,
+        data_fetcher const df, char * const buf_fixed,
+        char * const buf_sliding, void * const fixed, void * const sliding,
+        unsigned const fixed_start, unsigned const sliding_end,
+        unsigned slide_distance) {
+    while (slide_distance) {
+        ds(sliding, sliding_end - slide_distance);
+        ds(fixed, fixed_start);
+        assert(df(fixed, buf_fixed, 1) == 1);
+        assert(df(sliding, buf_sliding, 1) == 1);
+        if (buf_fixed[0] == buf_sliding[0]) {
+            if (slide_distance == min(slide_distance, find_start_delta(
+                    df, sample_size, buf_fixed, buf_sliding, fixed,
+                    sliding))) {
+                break;
+            }
+        }
+        slide_distance--;
+    }
+    return slide_distance;
+}
+
 /*
  * Takes a set of "rough" hunks (start and end points aligned to chunk
  * boundaries) and reads the data around the start and end points to narrow
@@ -83,13 +106,35 @@ hunk * const bdiff_narrow(
         data_fetcher const df, void * const a, void * const b) {
     hunk * precise_hunks_head = NULL, * precise_hunks_tail = NULL;
     unsigned end_shove_a = 0, end_shove_b = 0;
+    char buf_a[buf_size], buf_b[buf_size];
     for (; rough_hunks != NULL; rough_hunks = rough_hunks->next) {
+        if (end_shove_b) {
+            end_shove_b = slidey_aligner(
+                sample_size, ds, df, buf_b, buf_a, b, a,
+                precise_hunks_tail->b.start, rough_hunks->a.start,
+                min(
+                    precise_hunks_tail->a.end - precise_hunks_tail->a.start,
+                    min(
+                        rough_hunks->b.end - rough_hunks->b.start,
+                        max_chunk_size)));
+            precise_hunks_tail->a.end -= end_shove_b;
+        }
+        // FIXME: same for b
+        if (
+                ((rough_hunks->b.start + end_shove_b) ==
+                    rough_hunks->b.end) &&
+                ((rough_hunks->a.start + end_shove_a) ==
+                    rough_hunks->a.end)) {
+            // Hunk that contains nothing in either
+            end_shove_a = end_shove_b = 0;
+            continue;
+        }
         append_hunk(
-            &precise_hunks_head, &precise_hunks_tail, rough_hunks->a.start,
-            rough_hunks->a.end, rough_hunks->b.start, rough_hunks->b.end);
+            &precise_hunks_head, &precise_hunks_tail,
+            rough_hunks->a.start + end_shove_a, rough_hunks->a.end,
+            rough_hunks->b.start + end_shove_b, rough_hunks->b.end);
         ds(a, precise_hunks_tail->a.start);
         ds(b, precise_hunks_tail->b.start);
-        char buf_a[buf_size], buf_b[buf_size];
         unsigned const start_delta = find_start_delta(
             df, sample_size, buf_a, buf_b, a, b);
         precise_hunks_tail->a.start += start_delta;
