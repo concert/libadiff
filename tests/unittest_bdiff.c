@@ -264,10 +264,13 @@ static void bdiff_combined_insertion_same_either_side() {
     Build_narrowable_data(ndb, 1, Arr(200), Arr(0));
     hunk * hunks = bdiff(
         sizeof(unsigned), narrowable_seeker, narrowable_fetcher, &nda, &ndb);
-    g_assert_cmpuint(hunks->a.start, ==, 151);
-    g_assert_cmpuint(hunks->a.end, ==, 651);
-    g_assert_cmpuint(hunks->b.start, ==, 151);
-    g_assert_cmpuint(hunks->b.end, ==, 151);
+    assert_hunk_eq(hunks, 151, 651, 151, 151);
+    g_assert_null(hunks->next);
+    hunk_free(hunks);
+    nda.pos = ndb.pos = 0;
+    hunks = bdiff(
+        sizeof(unsigned), narrowable_seeker, narrowable_fetcher, &ndb, &nda);
+    assert_hunk_eq(hunks, 151, 151, 151, 651);
     g_assert_null(hunks->next);
     hunk_free(hunks);
 }

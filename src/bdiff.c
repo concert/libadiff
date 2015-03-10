@@ -119,6 +119,17 @@ hunk * const bdiff_narrow(
     unsigned end_shove_a = 0, end_shove_b = 0;
     char buf_a[buf_size], buf_b[buf_size];
     for (; rough_hunks != NULL; rough_hunks = rough_hunks->next) {
+        if (end_shove_a) {
+            end_shove_a = slidey_aligner(
+                sample_size, ds, df, buf_a, buf_b, a, b,
+                rough_hunks->a.start, precise_hunks_tail->b.end,
+                min(
+                    precise_hunks_tail->b.end - precise_hunks_tail->b.start,
+                    min(
+                        rough_hunks->a.end - rough_hunks->a.start,
+                        max_chunk_size)));
+            precise_hunks_tail->b.end -= end_shove_a;
+        }
         if (end_shove_b) {
             end_shove_b = slidey_aligner(
                 sample_size, ds, df, buf_b, buf_a, b, a,
@@ -130,15 +141,16 @@ hunk * const bdiff_narrow(
                         max_chunk_size)));
             precise_hunks_tail->a.end -= end_shove_b;
         }
-        // FIXME: same for b
         ds(a, rough_hunks->a.start + end_shove_a);
         ds(b, rough_hunks->b.start + end_shove_b);
         unsigned const start_delta = find_start_delta(
             df, sample_size, buf_a, buf_b, a, b);
+        end_shove_a += start_delta;
+        end_shove_b += start_delta;
         if (
-                ((rough_hunks->b.start + end_shove_b + start_delta) ==
+                ((rough_hunks->b.start + end_shove_b) ==
                     rough_hunks->b.end) &&
-                ((rough_hunks->a.start + end_shove_a + start_delta) ==
+                ((rough_hunks->a.start + end_shove_a) ==
                     rough_hunks->a.end)) {
             // Hunk that contains nothing in either
             end_shove_a = end_shove_b = 0;
@@ -146,9 +158,9 @@ hunk * const bdiff_narrow(
         }
         append_hunk(
             &precise_hunks_head, &precise_hunks_tail,
-            rough_hunks->a.start + end_shove_a + start_delta,
+            rough_hunks->a.start + end_shove_a,
             rough_hunks->a.end,
-            rough_hunks->b.start + end_shove_b + start_delta,
+            rough_hunks->b.start + end_shove_b,
             rough_hunks->b.end);
         end_shove_a = end_shove_b = 0;
         if (precise_hunks_tail->a.start > precise_hunks_tail->a.end) {
