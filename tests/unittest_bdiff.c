@@ -60,7 +60,7 @@ static unsigned narrowable_fetcher(
 
 static void narrowable_seeker(void * source, unsigned pos) {
     narrowable_data * nd = source;
-    g_assert_cmpuint(pos, <=, nd->from[nd->n_values - 1]);
+    g_assert_cmpuint(pos, <=, nd->from[nd->n_values - 1] + 1);
     nd->pos = pos;
 }
 
