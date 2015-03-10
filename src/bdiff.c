@@ -46,7 +46,11 @@ static unsigned find_start_delta(
         if (n_read_a != n_read_b) {
             return min_read + delta_offset;
         } else {
-            delta_offset += min_read;
+            if (min_read) {
+                delta_offset += min_read;
+            } else {
+                return delta_offset;
+            }
         }
     }
 }
@@ -79,19 +83,26 @@ static unsigned slidey_aligner(
         char * const buf_sliding, void * const fixed, void * const sliding,
         unsigned const fixed_start, unsigned const sliding_end,
         unsigned slide_distance) {
-    while (slide_distance) {
+    for (; slide_distance; slide_distance--) {
         ds(sliding, sliding_end - slide_distance);
         ds(fixed, fixed_start);
         assert(df(fixed, buf_fixed, 1) == 1);
         assert(df(sliding, buf_sliding, 1) == 1);
-        if (buf_fixed[0] == buf_sliding[0]) {
-            if (slide_distance == min(slide_distance, find_start_delta(
-                    df, sample_size, buf_fixed, buf_sliding, fixed,
-                    sliding))) {
+        int cont = 0;
+        for (unsigned i=0; i < sample_size; i++) {
+            if (buf_fixed[i] != buf_sliding[i]) {
+                cont = 1;
                 break;
             }
         }
-        slide_distance--;
+        if (cont) {
+            continue;
+        }
+        unsigned fsd = find_start_delta(
+            df, sample_size, buf_fixed, buf_sliding, fixed, sliding);
+        if (slide_distance == min(slide_distance, fsd)) {
+            break;
+        }
     }
     return slide_distance;
 }
@@ -111,7 +122,7 @@ hunk * const bdiff_narrow(
         if (end_shove_b) {
             end_shove_b = slidey_aligner(
                 sample_size, ds, df, buf_b, buf_a, b, a,
-                precise_hunks_tail->b.start, rough_hunks->a.start,
+                rough_hunks->b.start, precise_hunks_tail->a.end,
                 min(
                     precise_hunks_tail->a.end - precise_hunks_tail->a.start,
                     min(
@@ -120,10 +131,14 @@ hunk * const bdiff_narrow(
             precise_hunks_tail->a.end -= end_shove_b;
         }
         // FIXME: same for b
+        ds(a, rough_hunks->a.start + end_shove_a);
+        ds(b, rough_hunks->b.start + end_shove_b);
+        unsigned const start_delta = find_start_delta(
+            df, sample_size, buf_a, buf_b, a, b);
         if (
-                ((rough_hunks->b.start + end_shove_b) ==
+                ((rough_hunks->b.start + end_shove_b + start_delta) ==
                     rough_hunks->b.end) &&
-                ((rough_hunks->a.start + end_shove_a) ==
+                ((rough_hunks->a.start + end_shove_a + start_delta) ==
                     rough_hunks->a.end)) {
             // Hunk that contains nothing in either
             end_shove_a = end_shove_b = 0;
@@ -131,14 +146,10 @@ hunk * const bdiff_narrow(
         }
         append_hunk(
             &precise_hunks_head, &precise_hunks_tail,
-            rough_hunks->a.start + end_shove_a, rough_hunks->a.end,
-            rough_hunks->b.start + end_shove_b, rough_hunks->b.end);
-        ds(a, precise_hunks_tail->a.start);
-        ds(b, precise_hunks_tail->b.start);
-        unsigned const start_delta = find_start_delta(
-            df, sample_size, buf_a, buf_b, a, b);
-        precise_hunks_tail->a.start += start_delta;
-        precise_hunks_tail->b.start += start_delta;
+            rough_hunks->a.start + end_shove_a + start_delta,
+            rough_hunks->a.end,
+            rough_hunks->b.start + end_shove_b + start_delta,
+            rough_hunks->b.end);
         end_shove_a = end_shove_b = 0;
         if (precise_hunks_tail->a.start > precise_hunks_tail->a.end) {
             end_shove_a =
