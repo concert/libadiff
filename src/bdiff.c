@@ -106,6 +106,10 @@ static unsigned slidey_aligner(
     return slide_distance;
 }
 
+static inline unsigned clamped_subtract(unsigned const a, unsigned const b) {
+    return (a > b) ? a - b : 0;
+}
+
 /*
  * Takes a set of "rough" hunks (start and end points aligned to chunk
  * boundaries) and reads the data around the start and end points to narrow
@@ -161,15 +165,10 @@ hunk * const bdiff_narrow(
             rough_hunks->a.end,
             rough_hunks->b.start + end_shove_b,
             rough_hunks->b.end);
-        end_shove_a = end_shove_b = 0;
-        if (precise_hunks_tail->a.start > precise_hunks_tail->a.end) {
-            end_shove_a =
-                precise_hunks_tail->a.start - precise_hunks_tail->a.end;
-        }
-        if (precise_hunks_tail->b.start > precise_hunks_tail->b.end) {
-            end_shove_b =
-                precise_hunks_tail->b.start - precise_hunks_tail->b.end;
-        }
+        end_shove_a = clamped_subtract(
+            precise_hunks_tail->a.start, precise_hunks_tail->a.end);
+        end_shove_b = clamped_subtract(
+            precise_hunks_tail->b.start, precise_hunks_tail->b.end);
         assert(!(end_shove_a && end_shove_b));
         precise_hunks_tail->a.end += max(end_shove_a, end_shove_b);
         precise_hunks_tail->b.end += max(end_shove_a, end_shove_b);
