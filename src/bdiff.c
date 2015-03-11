@@ -19,8 +19,13 @@ hunk * const bdiff_rough(
 
 static const unsigned buf_size = 8192;
 
-static inline unsigned min(unsigned a, unsigned b) {
+static inline unsigned min(unsigned const a, unsigned const b) {
     return (a < b) ? a : b;
+}
+
+static inline unsigned min3(
+        unsigned const a, unsigned const b, unsigned const c) {
+    return min(min(a, b), c);
 }
 
 static inline unsigned max(unsigned a, unsigned b) {
@@ -126,22 +131,20 @@ hunk * const bdiff_narrow(
             end_shove_a = slidey_aligner(
                 sample_size, ds, df, buf_a, buf_b, a, b,
                 rough_hunks->a.start, precise_hunks_tail->b.end,
-                min(
+                min3(
                     precise_hunks_tail->b.end - precise_hunks_tail->b.start,
-                    min(
-                        rough_hunks->a.end - rough_hunks->a.start,
-                        max_chunk_size)));
+                    rough_hunks->a.end - rough_hunks->a.start,
+                    max_chunk_size));
             precise_hunks_tail->b.end -= end_shove_a;
         }
         if (end_shove_b) {
             end_shove_b = slidey_aligner(
                 sample_size, ds, df, buf_b, buf_a, b, a,
                 rough_hunks->b.start, precise_hunks_tail->a.end,
-                min(
+                min3(
                     precise_hunks_tail->a.end - precise_hunks_tail->a.start,
-                    min(
-                        rough_hunks->b.end - rough_hunks->b.start,
-                        max_chunk_size)));
+                    rough_hunks->b.end - rough_hunks->b.start,
+                    max_chunk_size));
             precise_hunks_tail->a.end -= end_shove_b;
         }
         ds(a, rough_hunks->a.start + end_shove_a);
@@ -172,10 +175,10 @@ hunk * const bdiff_narrow(
         assert(!(end_shove_a && end_shove_b));
         precise_hunks_tail->a.end += max(end_shove_a, end_shove_b);
         precise_hunks_tail->b.end += max(end_shove_a, end_shove_b);
-        unsigned end_delta = min(
+        unsigned end_delta = min3(
             precise_hunks_tail->a.end - precise_hunks_tail->a.start,
-            precise_hunks_tail->b.end - precise_hunks_tail->b.start);
-        end_delta = min(end_delta, max_chunk_size);
+            precise_hunks_tail->b.end - precise_hunks_tail->b.start,
+            max_chunk_size);
         if (end_delta) {
             ds(a, precise_hunks_tail->a.end - end_delta);
             ds(b, precise_hunks_tail->b.end - end_delta);
