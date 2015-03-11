@@ -88,17 +88,16 @@ static unsigned slidey_aligner(
         ds(fixed, fixed_start);
         assert(df(fixed, buf_fixed, 1) == 1);
         assert(df(sliding, buf_sliding, 1) == 1);
-        int cont = 0;
-        for (unsigned i=0; i < sample_size; i++) {
+        unsigned i = 0;
+        for (; i < sample_size; i++) {
             if (buf_fixed[i] != buf_sliding[i]) {
-                cont = 1;
                 break;
             }
         }
-        if (cont) {
+        if (i != sample_size) {
             continue;
         }
-        unsigned fsd = find_start_delta(
+        unsigned const fsd = find_start_delta(
             df, sample_size, buf_fixed, buf_sliding, fixed, sliding);
         if (slide_distance == min(slide_distance, fsd)) {
             break;
