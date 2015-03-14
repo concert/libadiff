@@ -6,6 +6,11 @@
 
 static unsigned const max_chunk_size = 10000;
 
+/*
+ * Perform a chunk based diff of two binary streams.
+ * This method has algorithmic complexity
+ * O(length_stream_a + length_stream_b).
+ */
 hunk * const bdiff_rough(
         unsigned const sample_size, data_fetcher const df, void * const a,
         void * const b) {
@@ -32,6 +37,10 @@ static inline unsigned max(unsigned const a, unsigned const b) {
     return (a > b) ? a : b;
 }
 
+/*
+ * Search through two file sections from an aligned point returning the first
+ * differing sample relative to the start of the sections.
+ */
 static unsigned find_start_delta(
         data_fetcher const df, unsigned const sample_size, char * const buf_a,
         char * const buf_b, void * const a, void * const b) {
@@ -60,6 +69,10 @@ static unsigned find_start_delta(
     }
 }
 
+/*
+ * Search through two segments that should realign by end_delta reporting the
+ * position of last differing sample.
+ */
 static unsigned find_end_delta(
         data_fetcher const df, unsigned const sample_size, unsigned end_delta,
         char * const buf_a, char * const buf_b, void * const a,
@@ -82,6 +95,10 @@ static unsigned find_end_delta(
     return end_delta;
 }
 
+/*
+ * Scan for the start of the "fixed" sequence at the end of the given region of
+ * the "sliding" sequence.
+ */
 static unsigned slidey_aligner(
         unsigned const sample_size, data_seeker const ds,
         data_fetcher const df, char * const buf_fixed,
@@ -111,6 +128,9 @@ static unsigned slidey_aligner(
     return slide_distance;
 }
 
+/*
+ * Subtract 2 unsigned numbers returning 0 when we would otherwise underflow.
+ */
 static inline unsigned clamped_subtract(unsigned const a, unsigned const b) {
     return (a > b) ? a - b : 0;
 }
@@ -190,6 +210,9 @@ hunk * const bdiff_narrow(
     return precise_hunks_head;
 }
 
+/*
+ * Find a semantically correct binary diff of two streams.
+ */
 hunk * const bdiff(
         unsigned const sample_size, data_seeker const ds,
         data_fetcher const df, void * const a, void * const b) {
