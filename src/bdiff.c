@@ -28,7 +28,7 @@ static inline unsigned min3(
     return min(min(a, b), c);
 }
 
-static inline unsigned max(unsigned a, unsigned b) {
+static inline unsigned max(unsigned const a, unsigned const b) {
     return (a > b) ? a : b;
 }
 
