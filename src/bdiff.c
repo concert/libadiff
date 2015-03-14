@@ -102,9 +102,9 @@ static unsigned slidey_aligner(
         if (i != sample_size) {
             continue;
         }
-        unsigned const fsd = find_start_delta(
+        unsigned const start_delta = find_start_delta(
             df, sample_size, buf_fixed, buf_sliding, fixed, sliding);
-        if (slide_distance == min(slide_distance, fsd)) {
+        if (slide_distance == min(slide_distance, start_delta)) {
             break;
         }
     }
@@ -136,8 +136,7 @@ hunk * const bdiff_narrow(
                     rough_hunks->a.end - rough_hunks->a.start,
                     max_chunk_size));
             precise_hunks_tail->b.end -= end_shove_a;
-        }
-        if (end_shove_b) {
+        } else if (end_shove_b) {
             end_shove_b = slidey_aligner(
                 sample_size, ds, df, buf_b, buf_a, b, a,
                 rough_hunks->b.start, precise_hunks_tail->a.end,
@@ -158,7 +157,7 @@ hunk * const bdiff_narrow(
                     rough_hunks->b.end) &&
                 ((rough_hunks->a.start + end_shove_a) ==
                     rough_hunks->a.end)) {
-            // Hunk that contains nothing in either
+            // Discard a hunk that after narrowing contains nothing in either
             end_shove_a = end_shove_b = 0;
             continue;
         }
