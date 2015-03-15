@@ -49,8 +49,12 @@ typedef struct {
  * Search through two file sections from an aligned point returning the first
  * differing sample relative to the start of the sections.
  */
-static unsigned find_start_delta(fss2b stuff, void * const a, void * const b) {
+static unsigned find_start_delta(
+        fss2b stuff, void * const a, void * const b, unsigned const a_start,
+        unsigned const b_start) {
     unsigned delta_offset = 0;
+    stuff.ds(a, a_start);
+    stuff.ds(b, b_start);
     while (1) {
         assert(delta_offset <= max_chunk_size);
         unsigned const n_read_a = stuff.df(
@@ -128,7 +132,9 @@ static unsigned slidey_aligner(
         if (i != stuff.sample_size) {
             continue;
         }
-        unsigned const start_delta = find_start_delta(stuff, fixed, sliding);
+        unsigned const start_delta = find_start_delta(
+            stuff, fixed, sliding, fixed_start + 1,
+            sliding_end - slide_distance + 1);
         if (slide_distance == min(slide_distance, start_delta)) {
             break;
         }
@@ -175,9 +181,9 @@ hunk * const bdiff_narrow(
                     max_chunk_size));
             precise_hunks_tail->a.end -= end_shove_b;
         }
-        ds(a, rough_hunks->a.start + end_shove_a);
-        ds(b, rough_hunks->b.start + end_shove_b);
-        unsigned const start_delta = find_start_delta(stuff, a, b);
+        unsigned const start_delta = find_start_delta(
+            stuff, a, b, rough_hunks->a.start + end_shove_a,
+            rough_hunks->b.start + end_shove_b);
         end_shove_a += start_delta;
         end_shove_b += start_delta;
         if (
