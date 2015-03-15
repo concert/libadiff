@@ -83,7 +83,10 @@ static unsigned find_start_delta(fss2b stuff, void * const a, void * const b) {
  * position of last differing sample.
  */
 static unsigned find_end_delta(
-        fss2b stuff, unsigned end_delta, void * const a, void * const b) {
+        fss2b stuff, unsigned end_delta, void * const a, unsigned const a_end,
+        void * const b, unsigned const b_end) {
+    stuff.ds(a, a_end - end_delta);
+    stuff.ds(b, b_end - end_delta);
     unsigned loop_start_delta = end_delta;
     while (loop_start_delta) {
         unsigned const n_read = stuff.df(
@@ -204,9 +207,9 @@ hunk * const bdiff_narrow(
             precise_hunks_tail->b.end - precise_hunks_tail->b.start,
             max_chunk_size);
         if (end_delta) {
-            ds(a, precise_hunks_tail->a.end - end_delta);
-            ds(b, precise_hunks_tail->b.end - end_delta);
-            end_delta = find_end_delta(stuff, end_delta, a, b);
+            end_delta = find_end_delta(
+                stuff, end_delta, a, precise_hunks_tail->a.end, b,
+                precise_hunks_tail->b.end);
         }
         precise_hunks_tail->a.end -= end_delta;
         precise_hunks_tail->b.end -= end_delta;
