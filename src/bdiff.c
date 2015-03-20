@@ -51,16 +51,17 @@ typedef struct {
  */
 static unsigned find_start_delta(
         fss2b stuff, void * const a, void * const b, unsigned const a_start,
-        unsigned const b_start) {
+        unsigned const b_start, unsigned const max_length) {
     unsigned delta_offset = 0;
     stuff.ds(a, a_start);
     stuff.ds(b, b_start);
-    while (1) {
-        assert(delta_offset <= max_chunk_size);
+    while (delta_offset < max_length) {
         unsigned const n_read_a = stuff.df(
-            a, stuff.buf_a, buf_size/stuff.sample_size);
+            a, stuff.buf_a,
+            min(buf_size/stuff.sample_size, max_length - delta_offset));
         unsigned const n_read_b = stuff.df(
-            b, stuff.buf_b, buf_size/stuff.sample_size);
+            b, stuff.buf_b,
+            min(buf_size/stuff.sample_size, max_length - delta_offset));
         unsigned const min_read = min(n_read_a, n_read_b);
         for (
                 unsigned byte_idx = 0;
@@ -76,10 +77,11 @@ static unsigned find_start_delta(
             if (min_read) {
                 delta_offset += min_read;
             } else {
-                return delta_offset;
+                break;
             }
         }
     }
+    return delta_offset;
 }
 
 /*
@@ -134,8 +136,8 @@ static unsigned slidey_aligner(
         }
         unsigned const start_delta = find_start_delta(
             stuff, fixed, sliding, fixed_start + 1,
-            sliding_end - slide_distance + 1);
-        if (slide_distance == min(slide_distance, start_delta)) {
+            sliding_end - slide_distance + 1, slide_distance);
+        if (slide_distance == start_delta) {
             break;
         }
     }
@@ -183,7 +185,8 @@ hunk * const bdiff_narrow(
         }
         unsigned const start_delta = find_start_delta(
             stuff, a, b, rough_hunks->a.start + end_shove_a,
-            rough_hunks->b.start + end_shove_b);
+            rough_hunks->b.start + end_shove_b, max_chunk_size + 1);
+        assert(start_delta != max_chunk_size + 1);
         end_shove_a += start_delta;
         end_shove_b += start_delta;
         if (
