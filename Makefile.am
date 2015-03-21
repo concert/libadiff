@@ -6,6 +6,7 @@ diff_frames_SOURCES = \
 	src/adiff.c \
 	src/chunk.c \
 	src/bdiff.c \
+    src/narrowing.c \
 	src/hunk.c \
 	src/rabin.c \
 	src/hash_counting_table.c
@@ -17,6 +18,7 @@ patch_frames_SOURCES = \
 	src/adiff.c \
 	src/chunk.c \
 	src/bdiff.c \
+    src/narrowing.c \
 	src/hunk.c \
 	src/rabin.c \
 	src/hash_counting_table.c
@@ -41,6 +43,9 @@ unittest_bdiff_SOURCES = \
 	src/chunk.c \
 	src/rabin.c \
 	src/bdiff.c \
+    src/narrowing.c \
+    tests/narrowable_test_tools.c \
+    tests/unittest_narrowing.c \
 	tests/unittest_bdiff.c
 unittest_bdiff_LDADD=$(GLIB_LIBS)
 
@@ -52,6 +57,7 @@ unittest_adiff_SOURCES = \
 	src/chunk.c \
 	src/rabin.c \
 	src/bdiff.c \
+    src/narrowing.c \
 	src/adiff.c \
 	tests/unittest_adiff.c
 unittest_adiff_LDADD=$(diff_frames_LDADD)
