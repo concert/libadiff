@@ -23,32 +23,33 @@ typedef struct {
     unsigned const sample_size;
     char * const buf_a;
     char * const buf_b;
-} fss2b;
+} read_seek_data;
 
 /*
  * Search through two file sections from an aligned point returning the first
  * differing sample relative to the start of the sections.
  */
 static unsigned find_start_delta(
-        fss2b stuff, void * const a, void * const b, unsigned const a_start,
-        unsigned const b_start, unsigned const max_length) {
+        read_seek_data rsd, void * const a, void * const b,
+        unsigned const a_start, unsigned const b_start,
+        unsigned const max_length) {
     unsigned delta_offset = 0;
-    stuff.ds(a, a_start);
-    stuff.ds(b, b_start);
+    rsd.ds(a, a_start);
+    rsd.ds(b, b_start);
     while (delta_offset < max_length) {
-        unsigned const n_read_a = stuff.df(
-            a, stuff.buf_a,
-            min(buf_size/stuff.sample_size, max_length - delta_offset));
-        unsigned const n_read_b = stuff.df(
-            b, stuff.buf_b,
-            min(buf_size/stuff.sample_size, max_length - delta_offset));
+        unsigned const n_read_a = rsd.df(
+            a, rsd.buf_a,
+            min(buf_size/rsd.sample_size, max_length - delta_offset));
+        unsigned const n_read_b = rsd.df(
+            b, rsd.buf_b,
+            min(buf_size/rsd.sample_size, max_length - delta_offset));
         unsigned const min_read = min(n_read_a, n_read_b);
         for (
                 unsigned byte_idx = 0;
-                byte_idx < (stuff.sample_size * min_read);
+                byte_idx < (rsd.sample_size * min_read);
                 byte_idx++) {
-            if (stuff.buf_a[byte_idx] != stuff.buf_b[byte_idx]) {
-                return (byte_idx / stuff.sample_size) + delta_offset;
+            if (rsd.buf_a[byte_idx] != rsd.buf_b[byte_idx]) {
+                return (byte_idx / rsd.sample_size) + delta_offset;
             }
         }
         if (n_read_a != n_read_b) {
@@ -69,22 +70,22 @@ static unsigned find_start_delta(
  * position of last differing sample.
  */
 static unsigned find_end_delta(
-        fss2b stuff, unsigned end_delta, void * const a, unsigned const a_end,
-        void * const b, unsigned const b_end) {
-    stuff.ds(a, a_end - end_delta);
-    stuff.ds(b, b_end - end_delta);
+        read_seek_data rsd, unsigned end_delta, void * const a,
+        unsigned const a_end, void * const b, unsigned const b_end) {
+    rsd.ds(a, a_end - end_delta);
+    rsd.ds(b, b_end - end_delta);
     unsigned loop_start_delta = end_delta;
     while (loop_start_delta) {
-        unsigned const n_read = stuff.df(
-            a, stuff.buf_a, min(buf_size/stuff.sample_size, loop_start_delta));
+        unsigned const n_read = rsd.df(
+            a, rsd.buf_a, min(buf_size/rsd.sample_size, loop_start_delta));
         assert(n_read != 0);
-        assert(stuff.df(b, stuff.buf_b, n_read) == n_read);
+        assert(rsd.df(b, rsd.buf_b, n_read) == n_read);
         for (
-                unsigned byte_idx = 0; byte_idx < (stuff.sample_size * n_read);
+                unsigned byte_idx = 0; byte_idx < (rsd.sample_size * n_read);
                 byte_idx++) {
-            if (stuff.buf_a[byte_idx] != stuff.buf_b[byte_idx]) {
+            if (rsd.buf_a[byte_idx] != rsd.buf_b[byte_idx]) {
                 end_delta =
-                    loop_start_delta - (byte_idx / stuff.sample_size) - 1;
+                    loop_start_delta - (byte_idx / rsd.sample_size) - 1;
             }
         }
         loop_start_delta -= n_read;
@@ -97,25 +98,25 @@ static unsigned find_end_delta(
  * the "sliding" sequence.
  */
 static unsigned slidey_aligner(
-        fss2b stuff, void * const fixed, void * const sliding,
+        read_seek_data rsd, void * const fixed, void * const sliding,
         unsigned const fixed_start, unsigned const sliding_end,
         unsigned slide_distance) {
     for (; slide_distance; slide_distance--) {
-        stuff.ds(sliding, sliding_end - slide_distance);
-        stuff.ds(fixed, fixed_start);
-        assert(stuff.df(fixed, stuff.buf_a, 1) == 1);
-        assert(stuff.df(sliding, stuff.buf_b, 1) == 1);
+        rsd.ds(sliding, sliding_end - slide_distance);
+        rsd.ds(fixed, fixed_start);
+        assert(rsd.df(fixed, rsd.buf_a, 1) == 1);
+        assert(rsd.df(sliding, rsd.buf_b, 1) == 1);
         unsigned i = 0;
-        for (; i < stuff.sample_size; i++) {
-            if (stuff.buf_a[i] != stuff.buf_b[i]) {
+        for (; i < rsd.sample_size; i++) {
+            if (rsd.buf_a[i] != rsd.buf_b[i]) {
                 break;
             }
         }
-        if (i != stuff.sample_size) {
+        if (i != rsd.sample_size) {
             continue;
         }
         unsigned const start_delta = find_start_delta(
-            stuff, fixed, sliding, fixed_start + 1,
+            rsd, fixed, sliding, fixed_start + 1,
             sliding_end - slide_distance + 1, slide_distance);
         if (slide_distance == start_delta) {
             break;
@@ -142,13 +143,13 @@ hunk * const bdiff_narrow(
     hunk * precise_hunks_head = NULL, * precise_hunks_tail = NULL;
     unsigned end_shove_a = 0, end_shove_b = 0;
     char buf_a[buf_size], buf_b[buf_size];
-    fss2b stuff = (fss2b) {
+    read_seek_data rsd = (read_seek_data) {
         .df = df, .ds = ds, .sample_size = sample_size, .buf_a = buf_a,
         .buf_b = buf_b};
     for (; rough_hunks != NULL; rough_hunks = rough_hunks->next) {
         if (end_shove_a) {
             end_shove_a = slidey_aligner(
-                stuff, a, b, rough_hunks->a.start, precise_hunks_tail->b.end,
+                rsd, a, b, rough_hunks->a.start, precise_hunks_tail->b.end,
                 min3(
                     precise_hunks_tail->b.end - precise_hunks_tail->b.start,
                     rough_hunks->a.end - rough_hunks->a.start,
@@ -156,7 +157,7 @@ hunk * const bdiff_narrow(
             precise_hunks_tail->b.end -= end_shove_a;
         } else if (end_shove_b) {
             end_shove_b = slidey_aligner(
-                stuff, b, a, rough_hunks->b.start, precise_hunks_tail->a.end,
+                rsd, b, a, rough_hunks->b.start, precise_hunks_tail->a.end,
                 min3(
                     precise_hunks_tail->a.end - precise_hunks_tail->a.start,
                     rough_hunks->b.end - rough_hunks->b.start,
@@ -164,7 +165,7 @@ hunk * const bdiff_narrow(
             precise_hunks_tail->a.end -= end_shove_b;
         }
         unsigned const start_delta = find_start_delta(
-            stuff, a, b, rough_hunks->a.start + end_shove_a,
+            rsd, a, b, rough_hunks->a.start + end_shove_a,
             rough_hunks->b.start + end_shove_b, max_chunk_size + 1);
         assert(start_delta != max_chunk_size + 1);
         end_shove_a += start_delta;
@@ -197,7 +198,7 @@ hunk * const bdiff_narrow(
             max_chunk_size);
         if (end_delta) {
             end_delta = find_end_delta(
-                stuff, end_delta, a, precise_hunks_tail->a.end, b,
+                rsd, end_delta, a, precise_hunks_tail->a.end, b,
                 precise_hunks_tail->b.end);
         }
         precise_hunks_tail->a.end -= end_delta;
