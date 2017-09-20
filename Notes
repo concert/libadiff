@@ -1,6 +1,6 @@
 # To build:
 mkdir build
-meson . build
+meson build
 cd build
 ninja
 
