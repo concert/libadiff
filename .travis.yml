@@ -1,0 +1,16 @@
+language: c
+sudo: false
+addons:
+  apt:
+    packages:
+      - libglib2.0-dev
+      - libsndfile-dev
+before_install:
+ - pyenv shell 3.5
+ - pip install meson ninja
+ - mkdir build
+ - meson build
+install:
+ - ninja -C build
+script:
+ - ninja -C build test
