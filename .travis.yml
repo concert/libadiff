@@ -6,7 +6,8 @@ addons:
       - libglib2.0-dev
       - libsndfile-dev
 before_install:
- - pip3 install meson ninja
+ - pyenv shell 3.5
+ - pip install meson ninja
  - mkdir build
  - meson build
 install:
