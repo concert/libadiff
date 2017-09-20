@@ -1,4 +1,4 @@
-project('adifflib', 'c')
+project('libadiff', 'c')
 
 add_global_arguments('-std=gnu11', '-fms-extensions', language: 'c')
 
