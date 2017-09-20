@@ -1,9 +1,9 @@
 # To build:
-autoreconf -i
-CC="gcc-4.8.3" CFLAGS="-fms-extensions -std=c11" ./configure && make
-# You shouldn't need that exact version of gcc, it just has to be recent and
-# you shouldn't really need the -fms-extensions either if yours is up to date
-# enough.
+mkdir build
+meson . build
+cd build
+ninja
 
-# To build the tests:
-make check
+# To build and run the tests:
+cd build
+ninja test
