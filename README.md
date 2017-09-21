@@ -7,10 +7,10 @@ libadiff - Audio diffing library
 ## Build:
 
 To build you'll need:
- * `ninja` (build system)
- * `meson` (build system)
- * `glib2` and headers
- * `libsndfile` and headers
+ * [`ninja`](https://ninja-build.org/) (build system)
+ * [`meson`](http://mesonbuild.com/Quick-guide.html) (build system)
+ * [`glib2`](https://developer.gnome.org/glib/) and headers
+ * [`libsndfile`](http://www.mega-nerd.com/libsndfile/) and headers
 
 If you're on a Debian-based Linux system, you can install them with:
 ```
