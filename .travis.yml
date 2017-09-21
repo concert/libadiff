@@ -3,11 +3,12 @@ sudo: false
 addons:
   apt:
     packages:
+      - ninja-build
       - libglib2.0-dev
       - libsndfile-dev
 before_install:
  - pyenv shell 3.5
- - pip install meson ninja
+ - pip install meson
  - mkdir build
  - meson build
 install:

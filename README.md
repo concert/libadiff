@@ -5,10 +5,17 @@ libadiff - Audio diffing library
     https://travis-ci.org/concert/libadiff)
 
 ## Build:
-If you're on a Debian-based Linux system, prerequisites are:
+
+To build you'll need:
+ * `ninja` (build system)
+ * `meson` (build system)
+ * `glib2` and headers
+ * `libsndfile` and headers
+
+If you're on a Debian-based Linux system, you can install them with:
 ```
-apt-get install libglib2.0-dev libsndfile-dev
-pip install meson ninja  # Python3
+apt-get install ninja-build libglib2.0-dev libsndfile-dev
+pip install meson  # Python3
 ```
 Then you can build with:
 ```
