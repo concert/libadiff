@@ -27,3 +27,11 @@ Run the tests with:
 ```
 ninja -C build test
 ```
+To enable coverage collection:
+```
+mesonconf build -Db_coverage=true
+```
+Then after running the tests:
+```
+ninja -C build coverage-html
+```
