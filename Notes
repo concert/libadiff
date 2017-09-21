@@ -1,9 +1,0 @@
-# To build:
-mkdir build
-meson build
-cd build
-ninja
-
-# To build and run the tests:
-cd build
-ninja test
