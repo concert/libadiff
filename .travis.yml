@@ -20,3 +20,12 @@ install:
 script:
  - ninja -C build test
  - ninja -C build coverage-html
+notifications:
+  email: false
+  irc:
+    channels:
+     - "chat.freenode.net#concertdaw"
+    on_success: change
+    on_failure: change
+    template:
+     - "%{repository_name}/%{branch} %{result}: %{build_url}"
