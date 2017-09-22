@@ -27,3 +27,5 @@ notifications:
      - "chat.freenode.net#concertdaw"
     on_success: change
     on_failure: change
+    template:
+     - "%{repository_name}/%{branch} %{result}: %{build_url}"
