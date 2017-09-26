@@ -35,3 +35,8 @@ Then after running the tests:
 ```
 ninja -C build coverage-html
 ```
+
+To build the docs:
+```
+doxygen
+```

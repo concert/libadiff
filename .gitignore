@@ -1,80 +1,8 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-
-# C extensions
+# C shared objects
 *.so
-
-# Distribution / packaging
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.coverage
-.cache
-nosetests.xml
-coverage.xml
-
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
-*.log
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-target/
 
 # C object files
 *.o
-
-# Autotools generated stuff
-INSTALL
-Makefile.in
-aclocal.m4
-autom4te.cache/
-compile
-config.h.in
-configure
-depcomp
-install-sh
-missing
-test-driver
-
-# Configure generated stuff
-Makefile
-config.h
-config.status
-**/.deps/
-stamp-h1
 
 # Build artifacts
 diff_frames
@@ -84,8 +12,9 @@ unittest_rabin
 unittest_bdiff
 unittest_adiff
 
-# Test artifacts
-*.trs
-
 # Vim buffer files
 .*.swp
+
+# Artifact dirs
+build/
+docs/

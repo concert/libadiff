@@ -1,5 +1,14 @@
 #pragma once
 
+/*! \mainpage Anatomy of the library
+ * \section adiff
+ * This is the audio diffing and patching part of the library.
+ * \section bdiff
+ * This is the part of the library responsible for the O(n) binary diffing.
+ * \section rabin
+ * This is the rolling hashing component.
+ */
+
 #include "diff_types.h"
 
 /** \brief Codes for errors that may be encountered whilst diffing.
