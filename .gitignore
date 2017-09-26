@@ -14,3 +14,7 @@ unittest_adiff
 
 # Vim buffer files
 .*.swp
+
+# Artifact dirs
+build/
+docs/
