@@ -51,7 +51,7 @@ static void create_sndfile(
 }
 
 static adiff_fixture create_fixture() {
-    GError * err;
+    GError * err = NULL;
     char * temp_dir = g_dir_make_tmp("test_adiff_XXXXXX", &err);
     adiff_fixture fixture = {
         .temp_dir = temp_dir,
