@@ -24,3 +24,5 @@ pages:
     paths:
       - public
     expire_in: 10 days
+  only:
+    - master
