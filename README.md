@@ -1,8 +1,10 @@
 libadiff - Audio diffing library
 ================================
 
-[![Build Status](https://travis-ci.org/concert/libadiff.svg?branch=master)](
-    https://travis-ci.org/concert/libadiff)
+[![pipeline status](https://gitlab.com/concert/libadiff/badges/master/pipeline.svg)](
+    https://gitlab.com/concert/libadiff/commits/master)
+[![coverage report](https://gitlab.com/concert/libadiff/badges/master/coverage.svg)](
+    https://concert.gitlab.io/libadiff)
 
 ## Build:
 
